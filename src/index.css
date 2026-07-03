@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Geist:wght@100;300;400;500;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#000000] text-[#888888] antialiased;
+    font-family: 'Geist', sans-serif;
+  }
+  
+  h1, h2, h3, .font-equinox {
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.1em;
+  }
+}
+
+@layer components {
+  .tech-card {
+    @apply bg-[#0A0A0A] border border-[#222222] rounded-none transition-all duration-200 overflow-hidden;
+  }
+  
+  .tech-card:hover {
+    @apply border-premium-cyan/30 bg-[#0D0D0D];
+  }
+
+  .tech-input {
+    @apply bg-transparent border-none p-0 focus:ring-0 text-white font-bold w-full placeholder:text-white/10;
+  }
+
+  .tech-label {
+    @apply text-[9px] font-black uppercase tracking-[0.3em] text-[#444444] mb-1 block;
+  }
+
+  .btn-action {
+    @apply px-4 py-2 bg-white text-black text-[9px] font-black uppercase tracking-widest hover:bg-premium-cyan transition-all;
+  }
+
+  .status-badge {
+    @apply px-2 py-0.5 rounded-sm text-[8px] font-black uppercase tracking-widest border border-white/5 bg-white/5;
+  }
+
+  .biometric-ring {
+    @apply w-32 h-32 rounded-full border-2 border-premium-cyan/20 flex items-center justify-center relative;
+  }
+
+  .biometric-ring::after {
+    content: '';
+    @apply absolute inset-0 rounded-full border-2 border-premium-cyan animate-ping opacity-20;
+  }
+}
