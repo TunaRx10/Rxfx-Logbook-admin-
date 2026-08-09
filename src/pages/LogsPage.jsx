@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { 
   FileText, Search, Filter, ArrowDownToLine, 
   RefreshCw, Trash2, ShieldAlert, Activity,
@@ -12,29 +12,14 @@ const LogsPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mocking log data
-    const mockLogs = [
-      { id: 1, type: "SECURITY", message: "Failed login attempt from 192.168.1.45", timestamp: "2024-03-21 14:20:05", status: "critical" },
-      { id: 2, type: "SYSTEM", message: "Workspace synchronization completed successfully", timestamp: "2024-03-21 13:45:12", status: "success" },
-      { id: 3, type: "USER", message: "Admin 'martha_nexus' updated user permissions", timestamp: "2024-03-21 12:30:45", status: "info" },
-      { id: 4, type: "API", message: "Endpoint /v1/telemetry reached rate limit", timestamp: "2024-03-21 11:15:00", status: "warning" },
-      { id: 5, type: "SECURITY", message: "New admin claim assigned to user_9928", timestamp: "2024-03-21 10:55:22", status: "info" },
-      { id: 6, type: "DATABASE", message: "Firestore query optimization triggered", timestamp: "2024-03-21 09:20:11", status: "success" },
-      { id: 7, type: "SYSTEM", message: "Kernel update scheduled for 03:00 UTC", timestamp: "2024-03-20 23:45:59", status: "info" },
-      { id: 8, type: "ERROR", message: "Cloud Function 'processLog' timeout", timestamp: "2024-03-20 22:10:33", status: "critical" },
-    ];
-    
-    setTimeout(() => {
-      setLogs(mockLogs);
-      setLoading(false);
-    }, 800);
+    setLoading(false);
   }, []);
 
   const getStatusColor = (status) => {
     switch(status) {
-      case 'critical': return 'text-rose-500 bg-rose-500/10 border-rose-500/20';
+      case 'critical': return 'text-rose bg-rose/10 border-rose/20';
       case 'warning': return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
-      case 'success': return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+      case 'success': return 'text-emerald bg-emerald/10 border-emerald/20';
       default: return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
     }
   };
@@ -55,11 +40,11 @@ const LogsPage = () => {
         </div>
         
         <div className="flex items-center space-x-4">
-           <button className="flex items-center space-x-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-white/60 font-bold transition-all">
+           <button className="btn-tech">
              <ArrowDownToLine size={18} />
              <span>Export CSV</span>
            </button>
-           <button className="btn-premium py-3 px-8">
+           <button className="btn-tech">
              <RefreshCw size={18} />
              <span>Refresh</span>
            </button>
@@ -98,59 +83,59 @@ const LogsPage = () => {
                 <option value="user">User Actions</option>
               </select>
            </div>
-           <button className="p-4 bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 rounded-2xl text-rose-500 transition-all">
+           <button className="p-4 bg-rose/5 hover:bg-rose/10 border border-rose/10 rounded-2xl text-rose transition-all">
              <Trash2 size={20} />
            </button>
         </div>
       </div>
 
       {/* Logs Table */}
-      <div className="glass-card overflow-hidden">
+      <div className="overflow-hidden rounded-2xl" style={{ background: "oklch(0.13 0.02 255 / 0.4)", border: "1px solid oklch(1 0 0 / 7%)" }}>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="table-tech">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.01]">
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Timestamp</th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Event Type</th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Description</th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Priority</th>
-                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 text-right">Actions</th>
+              <tr>
+                <th>Timestamp</th>
+                <th>Event Type</th>
+                <th>Description</th>
+                <th>Priority</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody>
               {loading ? (
                 Array(5).fill(0).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td colSpan="5" className="px-8 py-6">
-                      <div className="h-6 bg-white/5 rounded-lg w-full"></div>
+                  <tr key={i}>
+                    <td colSpan="5">
+                      <div className="skeleton-shimmer h-6 w-full" />
                     </td>
                   </tr>
                 ))
               ) : (
                 logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-white/[0.02] transition-colors group">
-                    <td className="px-8 py-6">
-                      <div className="flex items-center space-x-3">
+                  <tr key={log.id} className="group">
+                    <td>
+                      <div className="flex items-center gap-3">
                         <Clock size={14} className="text-white/20" />
-                        <span className="text-sm font-medium text-white/60 tabular-nums">{log.timestamp}</span>
+                        <span className="text-white/60 tabular-nums">{log.timestamp}</span>
                       </div>
                     </td>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center space-x-2">
-                        {log.type === 'SECURITY' ? <ShieldAlert size={14} className="text-rose-400" /> : <Server size={14} className="text-blue-400" />}
+                    <td>
+                      <div className="flex items-center gap-2">
+                        {log.type === 'SECURITY' ? <ShieldAlert size={14} className="text-rose" /> : <Server size={14} className="text-blue-400" />}
                         <span className="text-xs font-black tracking-widest text-white/80">{log.type}</span>
                       </div>
                     </td>
-                    <td className="px-8 py-6">
-                      <p className="text-sm text-white/70 font-medium max-w-md truncate group-hover:text-white transition-colors">{log.message}</p>
+                    <td>
+                      <p className="text-white/70 font-medium max-w-md truncate group-hover:text-white transition-colors">{log.message}</p>
                     </td>
-                    <td className="px-8 py-6">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusColor(log.status)}`}>
+                    <td>
+                      <span className={`badge-status ${log.status === 'critical' ? 'badge-error' : log.status === 'warning' ? 'badge-warn' : log.status === 'success' ? 'badge-active' : 'badge-trial'}`}>
                         {log.status}
                       </span>
                     </td>
-                    <td className="px-8 py-6 text-right">
-                      <button className="text-premium-cyan font-black text-[10px] uppercase tracking-widest hover:underline">Details</button>
+                    <td className="text-right">
+                      <button className="text-cyan font-black text-[10px] uppercase tracking-widest hover:underline">Details</button>
                     </td>
                   </tr>
                 ))
@@ -160,20 +145,20 @@ const LogsPage = () => {
         </div>
         
         {/* Pagination */}
-        <div className="p-8 border-t border-white/5 bg-white/[0.01] flex items-center justify-between">
+        <div className="p-8 flex items-center justify-between" style={{ borderTop: "1px solid oklch(1 0 0 / 5%)", background: "oklch(1 0 0 / 1%)" }}>
           <p className="text-xs font-bold text-white/20 uppercase tracking-widest">Showing 1-8 of 2,450 entries</p>
-          <div className="flex items-center space-x-2">
-             <button className="p-2 bg-white/5 border border-white/5 rounded-xl text-white/20 cursor-not-allowed">
+          <div className="flex items-center gap-2">
+             <button className="p-2 rounded-xl text-white/20 cursor-not-allowed" style={{ background: "oklch(1 0 0 / 3%)", border: "1px solid oklch(1 0 0 / 5%)" }}>
                <ChevronLeft size={18} />
              </button>
-             <div className="flex items-center px-4 space-x-4">
-                <span className="text-xs font-black text-premium-cyan underline decoration-2 underline-offset-8">1</span>
+             <div className="flex items-center px-4 gap-4">
+                <span className="text-xs font-black text-cyan underline decoration-2 underline-offset-8">1</span>
                 <span className="text-xs font-black text-white/20">2</span>
                 <span className="text-xs font-black text-white/20">3</span>
                 <span className="text-xs font-black text-white/20">...</span>
                 <span className="text-xs font-black text-white/20">42</span>
              </div>
-             <button className="p-2 bg-white/5 border border-white/5 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all">
+             <button className="p-2 rounded-xl text-white/60 hover:text-white transition-all" style={{ background: "oklch(1 0 0 / 3%)", border: "1px solid oklch(1 0 0 / 5%)" }}>
                <ChevronRight size={18} />
              </button>
           </div>

@@ -1,0 +1,6 @@
+{
+  "appId": "com.rxfx.logbook.admin",
+  "appName": "RxFx Logbook Admin",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

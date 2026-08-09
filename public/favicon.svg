@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <title>RxFx</title>
+  <defs>
+    <linearGradient id="bg" x1="48" y1="24" x2="464" y2="488" gradientUnits="userSpaceOnUse"><stop stop-color="#15191D"/><stop offset=".52" stop-color="#0B0B0B"/><stop offset="1" stop-color="#05090B"/></linearGradient>
+    <linearGradient id="cyan" x1="142" y1="122" x2="384" y2="392" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF3FF"/><stop offset=".38" stop-color="#00D9FF"/><stop offset="1" stop-color="#0089B3"/></linearGradient>
+    <radialGradient id="halo" cx="0" cy="0" r="1" gradientTransform="translate(250 180) rotate(90) scale(255)"><stop stop-color="#00D9FF" stop-opacity=".22"/><stop offset="1" stop-color="#00D9FF" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="11" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/><circle cx="256" cy="196" r="218" fill="url(#halo)"/>
+  <rect x="18" y="18" width="476" height="476" rx="102" stroke="#00D9FF" stroke-opacity=".28" stroke-width="2"/><rect x="38" y="38" width="436" height="436" rx="84" stroke="#fff" stroke-opacity=".06"/>
+  <path d="M158 372V140h116c58 0 94 28 94 75s-36 75-94 75h-70" stroke="url(#cyan)" stroke-width="42" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/><path d="m264 288 104 84" stroke="url(#cyan)" stroke-width="42" stroke-linecap="round" filter="url(#glow)"/><path d="M158 140h116c58 0 94 28 94 75" stroke="#D9FCFF" stroke-opacity=".35" stroke-width="5" stroke-linecap="round"/><circle cx="402" cy="393" r="7" fill="#00D9FF"/>
+</svg>

@@ -1,0 +1,221 @@
+i  emulators: Starting emulators: functions
+⚠  logging: Error when trying to check port 4500 on ::1: Error: listen EADDRNOTAVAIL: address not available ::1:4500
+⚠  logging: Port 4500 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+⚠  logging: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+⚠  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, auth, firestore, database, hosting, pubsub, storage, dataconnect
+⚠  functions: Application Default Credentials detected. Non-emulated services will access production using these credentials. Be careful!
+i  ui: downloading ui-v1.15.0.zip...
+
+i  functions: Watching "/home/rxfxtuna/rxfx-logbook-admin/functions" for Cloud Functions...
+⚠  functions: Your requested "node" version "18" doesn't match your global version "24". Using node@24 from host.
+i  functions: Loaded environment variables from .env.
+i  functions: You are using a version of firebase-functions SDK (4.9.0) that does not have support for the newest Firebase Extensions features. Please update firebase-functions SDK to >=5.1.0 to use them correctly
+Serving at port 8661
+
+TypeError: admin.firestore is not a function
+    at Object.installSecretStore (/home/rxfxtuna/rxfx-logbook-admin/functions/suby-secrets.js:90:29)
+    at Object.<anonymous> (/home/rxfxtuna/rxfx-logbook-admin/functions/index.js:130:13)
+    at Module._compile (node:internal/modules/cjs/loader:1871:14)
+    at Object..js (node:internal/modules/cjs/loader:2002:10)
+    at Module.load (node:internal/modules/cjs/loader:1594:32)
+    at Module._load (node:internal/modules/cjs/loader:1396:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1617:12)
+    at require (node:internal/modules/helpers:153:16)
+    at loadModule (/home/rxfxtuna/rxfx-logbook-admin/functions/node_modules/firebase-functions/lib/runtime/loader.js:40:16)
+
+⬢  functions: Failed to load function definition from source: FirebaseError: User code failed to load. Cannot determine backend specification. Timeout after 10000. See https://firebase.google.com/docs/functions/tips#avoid_deployment_timeouts_during_initialization'
+
+[90m┌─────────────────────────────────────────────────────────────┐[39m
+[90m│[39m ✔  All emulators ready! It is now safe to connect your app. [90m│[39m
+[90m│[39m i  View Emulator UI at http://127.0.0.1:4000/               [90m│[39m
+[90m└─────────────────────────────────────────────────────────────┘[39m
+
+[90m┌───────────[39m[90m┬────────────────[39m[90m┬─────────────────────────────────┐[39m
+[90m│[39m[33m Emulator  [39m[90m│[39m[33m Host:Port      [39m[90m│[39m[33m View in Emulator UI             [39m[90m│[39m
+[90m├───────────[39m[90m┼────────────────[39m[90m┼─────────────────────────────────┤[39m
+[90m│[39m Functions [90m│[39m 127.0.0.1:5001 [90m│[39m http://127.0.0.1:4000/functions [90m│[39m
+[90m└───────────[39m[90m┴────────────────[39m[90m┴─────────────────────────────────┘[39m
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500
+
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 
+i  emulators: Starting emulators: functions
+⚠  logging: Error when trying to check port 4500 on ::1: Error: listen EADDRNOTAVAIL: address not available ::1:4500
+⚠  logging: Port 4500 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+⚠  logging: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+⚠  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, auth, firestore, database, hosting, pubsub, storage, dataconnect
+⚠  functions: Application Default Credentials detected. Non-emulated services will access production using these credentials. Be careful!
+i  functions: Watching "/home/rxfxtuna/rxfx-logbook-admin/functions" for Cloud Functions...
+⚠  functions: Your requested "node" version "18" doesn't match your global version "24". Using node@24 from host.
+i  functions: Loaded environment variables from .env.
+i  functions: You are using a version of firebase-functions SDK (4.9.0) that does not have support for the newest Firebase Extensions features. Please update firebase-functions SDK to >=5.1.0 to use them correctly
+Serving at port 8572
+
+TypeError: admin.firestore is not a function
+    at Object.installSecretStore (/home/rxfxtuna/rxfx-logbook-admin/functions/suby-secrets.js:90:29)
+    at Object.<anonymous> (/home/rxfxtuna/rxfx-logbook-admin/functions/index.js:130:13)
+    at Module._compile (node:internal/modules/cjs/loader:1871:14)
+    at Object..js (node:internal/modules/cjs/loader:2002:10)
+    at Module.load (node:internal/modules/cjs/loader:1594:32)
+    at Module._load (node:internal/modules/cjs/loader:1396:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1617:12)
+    at require (node:internal/modules/helpers:153:16)
+    at loadModule (/home/rxfxtuna/rxfx-logbook-admin/functions/node_modules/firebase-functions/lib/runtime/loader.js:40:16)
+
+⬢  functions: Failed to load function definition from source: FirebaseError: Functions codebase could not be analyzed successfully. It may have a syntax or runtime error
+
+[90m┌─────────────────────────────────────────────────────────────┐[39m
+[90m│[39m ✔  All emulators ready! It is now safe to connect your app. [90m│[39m
+[90m│[39m i  View Emulator UI at http://127.0.0.1:4000/               [90m│[39m
+[90m└─────────────────────────────────────────────────────────────┘[39m
+
+[90m┌───────────[39m[90m┬────────────────[39m[90m┬─────────────────────────────────┐[39m
+[90m│[39m[33m Emulator  [39m[90m│[39m[33m Host:Port      [39m[90m│[39m[33m View in Emulator UI             [39m[90m│[39m
+[90m├───────────[39m[90m┼────────────────[39m[90m┼─────────────────────────────────┤[39m
+[90m│[39m Functions [90m│[39m 127.0.0.1:5001 [90m│[39m http://127.0.0.1:4000/functions [90m│[39m
+[90m└───────────[39m[90m┴────────────────[39m[90m┴─────────────────────────────────┘[39m
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500
+
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 
+i  emulators: Starting emulators: functions
+⚠  logging: Error when trying to check port 4500 on ::1: Error: listen EADDRNOTAVAIL: address not available ::1:4500
+⚠  logging: Port 4500 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+⚠  logging: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+⚠  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, auth, firestore, database, hosting, pubsub, storage, dataconnect
+⚠  functions: Application Default Credentials detected. Non-emulated services will access production using these credentials. Be careful!
+i  functions: Watching "/home/rxfxtuna/rxfx-logbook-admin/functions" for Cloud Functions...
+⚠  functions: Your requested "node" version "18" doesn't match your global version "24". Using node@24 from host.
+i  functions: Loaded environment variables from .env.
+i  functions: You are using a version of firebase-functions SDK (4.9.0) that does not have support for the newest Firebase Extensions features. Please update firebase-functions SDK to >=5.1.0 to use them correctly
+Serving at port 8222
+
+TypeError: admin.firestore is not a function
+    at Object.installSecretStore (/home/rxfxtuna/rxfx-logbook-admin/functions/suby-secrets.js:90:29)
+    at Object.<anonymous> (/home/rxfxtuna/rxfx-logbook-admin/functions/index.js:130:13)
+    at Module._compile (node:internal/modules/cjs/loader:1871:14)
+    at Object..js (node:internal/modules/cjs/loader:2002:10)
+    at Module.load (node:internal/modules/cjs/loader:1594:32)
+    at Module._load (node:internal/modules/cjs/loader:1396:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1617:12)
+    at require (node:internal/modules/helpers:153:16)
+    at loadModule (/home/rxfxtuna/rxfx-logbook-admin/functions/node_modules/firebase-functions/lib/runtime/loader.js:40:16)
+
+⬢  functions: Failed to load function definition from source: FirebaseError: Functions codebase could not be analyzed successfully. It may have a syntax or runtime error
+
+[90m┌─────────────────────────────────────────────────────────────┐[39m
+[90m│[39m ✔  All emulators ready! It is now safe to connect your app. [90m│[39m
+[90m│[39m i  View Emulator UI at http://127.0.0.1:4000/               [90m│[39m
+[90m└─────────────────────────────────────────────────────────────┘[39m
+
+[90m┌───────────[39m[90m┬────────────────[39m[90m┬─────────────────────────────────┐[39m
+[90m│[39m[33m Emulator  [39m[90m│[39m[33m Host:Port      [39m[90m│[39m[33m View in Emulator UI             [39m[90m│[39m
+[90m├───────────[39m[90m┼────────────────[39m[90m┼─────────────────────────────────┤[39m
+[90m│[39m Functions [90m│[39m 127.0.0.1:5001 [90m│[39m http://127.0.0.1:4000/functions [90m│[39m
+[90m└───────────[39m[90m┴────────────────[39m[90m┴─────────────────────────────────┘[39m
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500
+
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 
+i  emulators: Starting emulators: functions
+⚠  hub: emulator hub unable to start on port 4400, starting on 4401 instead.
+⚠  ui: Emulator UI unable to start on port 4000, starting on 4001 instead.
+⚠  logging: Error when trying to check port 4501 on ::1: Error: listen EADDRNOTAVAIL: address not available ::1:4501
+⚠  logging: Port 4500 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+⚠  logging: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+⚠  logging: Logging Emulator unable to start on port 4500, starting on 4501 instead.
+⚠  emulators: It seems that you are running multiple instances of the emulator suite for project rxfx-logbook-38944. This may result in unexpected behavior.
+⚠  functions: Port 5001 is not open on 127.0.0.1, could not start Functions Emulator.
+⚠  functions: To select a different host/port, specify that host/port in a firebase.json config file:
+      {
+        // ...
+        "emulators": {
+          "functions": {
+            "host": "HOST",
+            "port": "PORT"
+          }
+        }
+      }
+⚠  eventarc: Eventarc Emulator unable to start on port 9299, starting on 9300 instead.
+⚠  tasks: Cloud Tasks Emulator unable to start on port 9499, starting on 9500 instead.
+i  emulators: Shutting down emulators.
+i  hub: Stopping emulator hub
+
+Error: Could not start Functions Emulator, port taken.
+i  emulators: Starting emulators: functions
+⚠  logging: Error when trying to check port 4500 on ::1: Error: listen EADDRNOTAVAIL: address not available ::1:4500
+⚠  logging: Port 4500 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+⚠  logging: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+⚠  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, auth, firestore, database, hosting, pubsub, storage, dataconnect
+⚠  functions: Application Default Credentials detected. Non-emulated services will access production using these credentials. Be careful!
+i  functions: Watching "/home/rxfxtuna/rxfx-logbook-admin/functions" for Cloud Functions...
+⚠  functions: Your requested "node" version "18" doesn't match your global version "24". Using node@24 from host.
+i  functions: Loaded environment variables from .env.
+i  functions: You are using a version of firebase-functions SDK (4.9.0) that does not have support for the newest Firebase Extensions features. Please update firebase-functions SDK to >=5.1.0 to use them correctly
+Serving at port 8313
+
+✔  functions: Loaded functions definitions from source: listCommunityFeedPosts, createCommunityFeedPost, toggleLikeCommunityFeedPost, reportCommunityFeedPost, verifyAdminPin, supabaseAdminProxy, sendSecurityAlert, queueEmail, processMailQueue, exportAnalyticsToSheets, manualSyncUsersToSheet, onUserCreatedSyncToSheet, onExportQueueCreated, getUserAnalytics, getComprehensiveStats, sendWeeklyReport, purgeScheduledAccountDeletions, checkSubscriptionExpirations, subyWebhook, setSubySettings, getSubySettings, testSubyConnection, probeConsumerWebhook, automatedBirthdaySystem, makeAdmin, getSystemStats, purgeSubyProcessedEvents, getSubyConnectionDiagnostics, subyCreatePayment, subyCreatePaymentLink, subyGetBalance, subyCreatePayout, subyListProducts, subyListTransactions, subyListSubscriptions, subyCancelSubscription, subyListCustomers, subySearchCustomer, subyDashboardStats, listCommunityPosts, softDeleteCommunityPost, hardDeleteCommunityPost.
+✔  functions[us-central1-listCommunityFeedPosts]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/listCommunityFeedPosts).
+✔  functions[us-central1-createCommunityFeedPost]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/createCommunityFeedPost).
+✔  functions[us-central1-toggleLikeCommunityFeedPost]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/toggleLikeCommunityFeedPost).
+✔  functions[us-central1-reportCommunityFeedPost]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/reportCommunityFeedPost).
+✔  functions[us-central1-verifyAdminPin]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/verifyAdminPin).
+✔  functions[us-central1-supabaseAdminProxy]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/supabaseAdminProxy).
+✔  functions[us-central1-sendSecurityAlert]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/sendSecurityAlert).
+✔  functions[us-central1-queueEmail]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/queueEmail).
+i  functions[us-central1-processMailQueue]: function ignored because the pubsub emulator does not exist or is not running.
+i  functions[us-central1-exportAnalyticsToSheets]: function ignored because the pubsub emulator does not exist or is not running.
+✔  functions[us-central1-manualSyncUsersToSheet]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/manualSyncUsersToSheet).
+✔  functions[us-central1-onUserCreatedSyncToSheet]: auth function initialized.
+i  functions[us-central1-onExportQueueCreated]: function ignored because the firestore emulator does not exist or is not running.
+✔  functions[us-central1-getUserAnalytics]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/getUserAnalytics).
+✔  functions[us-central1-getComprehensiveStats]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/getComprehensiveStats).
+i  functions[us-central1-sendWeeklyReport]: function ignored because the pubsub emulator does not exist or is not running.
+i  functions[us-central1-purgeScheduledAccountDeletions]: function ignored because the pubsub emulator does not exist or is not running.
+i  functions[us-central1-checkSubscriptionExpirations]: function ignored because the pubsub emulator does not exist or is not running.
+✔  functions[us-central1-subyWebhook]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/subyWebhook).
+✔  functions[us-central1-setSubySettings]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/setSubySettings).
+✔  functions[us-central1-getSubySettings]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/getSubySettings).
+✔  functions[us-central1-testSubyConnection]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/testSubyConnection).
+✔  functions[us-central1-probeConsumerWebhook]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/probeConsumerWebhook).
+i  functions[us-central1-automatedBirthdaySystem]: function ignored because the pubsub emulator does not exist or is not running.
+✔  functions[us-central1-makeAdmin]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/makeAdmin).
+✔  functions[us-central1-getSystemStats]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/getSystemStats).
+i  functions[us-central1-purgeSubyProcessedEvents]: function ignored because the pubsub emulator does not exist or is not running.
+✔  functions[us-central1-getSubyConnectionDiagnostics]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/getSubyConnectionDiagnostics).
+✔  functions[us-central1-subyCreatePayment]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/subyCreatePayment).
+✔  functions[us-central1-subyCreatePaymentLink]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/subyCreatePaymentLink).
+✔  functions[us-central1-subyGetBalance]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/subyGetBalance).
+✔  functions[us-central1-subyCreatePayout]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/subyCreatePayout).
+✔  functions[us-central1-subyListProducts]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/subyListProducts).
+✔  functions[us-central1-subyListTransactions]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/subyListTransactions).
+✔  functions[us-central1-subyListSubscriptions]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/subyListSubscriptions).
+✔  functions[us-central1-subyCancelSubscription]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/subyCancelSubscription).
+✔  functions[us-central1-subyListCustomers]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/subyListCustomers).
+✔  functions[us-central1-subySearchCustomer]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/subySearchCustomer).
+✔  functions[us-central1-subyDashboardStats]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/subyDashboardStats).
+✔  functions[us-central1-listCommunityPosts]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/listCommunityPosts).
+✔  functions[us-central1-softDeleteCommunityPost]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/softDeleteCommunityPost).
+✔  functions[us-central1-hardDeleteCommunityPost]: http function initialized (http://127.0.0.1:5001/rxfx-logbook-38944/us-central1/hardDeleteCommunityPost).
+
+[90m┌─────────────────────────────────────────────────────────────┐[39m
+[90m│[39m ✔  All emulators ready! It is now safe to connect your app. [90m│[39m
+[90m│[39m i  View Emulator UI at http://127.0.0.1:4000/               [90m│[39m
+[90m└─────────────────────────────────────────────────────────────┘[39m
+
+[90m┌───────────[39m[90m┬────────────────[39m[90m┬─────────────────────────────────┐[39m
+[90m│[39m[33m Emulator  [39m[90m│[39m[33m Host:Port      [39m[90m│[39m[33m View in Emulator UI             [39m[90m│[39m
+[90m├───────────[39m[90m┼────────────────[39m[90m┼─────────────────────────────────┤[39m
+[90m│[39m Functions [90m│[39m 127.0.0.1:5001 [90m│[39m http://127.0.0.1:4000/functions [90m│[39m
+[90m└───────────[39m[90m┴────────────────[39m[90m┴─────────────────────────────────┘[39m
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500
+
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 

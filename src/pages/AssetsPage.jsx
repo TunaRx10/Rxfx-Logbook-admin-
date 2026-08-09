@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { 
   Award, Zap, Plus, Trash2, Edit3, 
   Search, Settings, Upload, History,
@@ -28,8 +28,8 @@ const AssetsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#000000] p-6 lg:p-12 space-y-12 text-[#888888] font-geist">
-      <header className="flex flex-col md:flex-row md:items-end justify-between border-b border-[#222222] pb-12 gap-8">
+    <div className="min-h-screen bg-black p-6 lg:p-12 space-y-12 text-white/40 font-geist">
+      <header className="flex flex-col md:flex-row md:items-end justify-between border-b border-white/5 pb-12 gap-8">
         <div className="space-y-4">
            <div className="flex items-center space-x-2 text-premium-cyan font-equinox">
               <Award size={14} />
@@ -38,16 +38,16 @@ const AssetsPage = () => {
            <h2 className="text-7xl font-black text-white tracking-tighter uppercase font-equinox">Asset Rules</h2>
         </div>
         
-        <div className="flex items-center space-x-8 border border-[#222222] rounded-none p-1 bg-[#0A0A0A]">
+        <div className="flex items-center space-x-8 border border-white/10 rounded-none p-1 bg-black/60">
            <button 
              onClick={() => setActiveTab("rules")}
-             className={`px-8 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'rules' ? 'bg-white text-black' : 'text-[#444444] hover:text-white'}`}
+             className={`px-8 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'rules' ? 'bg-white text-black' : 'text-white/25 hover:text-white'}`}
            >
              Subscription Rules
            </button>
            <button 
              onClick={() => setActiveTab("creation")}
-             className={`px-8 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'creation' ? 'bg-white text-black' : 'text-[#444444] hover:text-white'}`}
+             className={`px-8 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'creation' ? 'bg-white text-black' : 'text-white/25 hover:text-white'}`}
            >
              Dynamic Creation
            </button>
@@ -57,7 +57,7 @@ const AssetsPage = () => {
       {activeTab === 'rules' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
            {[...badges, ...titles].map((asset, i) => (
-             <div key={i} className="tech-card p-10 flex items-center justify-between group border border-[#222222]">
+             <div key={i} className="bento-card p-10 flex items-center justify-between group">
                 <div className="flex items-center space-x-6">
                    <div className="p-4 bg-white/5 border border-white/10 rounded-none text-white/20 group-hover:text-premium-cyan transition-colors">
                       {asset.desc ? <Award size={24} /> : <Zap size={24} />}
@@ -67,20 +67,20 @@ const AssetsPage = () => {
                       <p className="tech-label mt-1">Rule: {asset.condition}</p>
                    </div>
                 </div>
-                <button className="p-3 border border-[#222222] text-[#444444] hover:text-white"><Edit3 size={18} /></button>
+                <button className="p-3 border border-white/10 text-white/25 hover:text-white hover:border-white/20 transition-colors rounded-xl"><Edit3 size={18} /></button>
              </div>
            ))}
         </div>
       ) : (
-        <div className="tech-card p-12 space-y-10 border-[#222222]">
+        <div className="tech-card p-12 space-y-10 border-white/5">
            <h3 className="text-xs font-black text-white uppercase tracking-[0.3em] font-equinox">Dynamic Asset Generator</h3>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <input className="tech-input p-4 bg-[#050505] border border-[#222222]" placeholder="Asset Name" value={newAsset.name} onChange={(e) => setNewAsset({...newAsset, name: e.target.value})} />
-              <select className="bg-[#050505] border border-[#222222] text-white p-4" value={newAsset.type} onChange={(e) => setNewAsset({...newAsset, type: e.target.value})}>
+              <input className="input-tech p-4" placeholder="Asset Name" value={newAsset.name} onChange={(e) => setNewAsset({...newAsset, name: e.target.value})} />
+              <select className="input-tech p-4" value={newAsset.type} onChange={(e) => setNewAsset({...newAsset, type: e.target.value})}>
                  <option value="badge">Badge</option>
                  <option value="title">Title</option>
               </select>
-              <input className="tech-input p-4 bg-[#050505] border border-[#222222]" placeholder="Trigger Condition" value={newAsset.condition} onChange={(e) => setNewAsset({...newAsset, condition: e.target.value})} />
+              <input className="input-tech p-4" placeholder="Trigger Condition" value={newAsset.condition} onChange={(e) => setNewAsset({...newAsset, condition: e.target.value})} />
            </div>
            <button onClick={addAsset} className="w-full btn-action py-6 text-xl">Deploy Asset to Registry</button>
         </div>

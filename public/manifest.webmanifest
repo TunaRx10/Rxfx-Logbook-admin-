@@ -1,0 +1,14 @@
+{
+  "name": "RxFx Logbook Admin",
+  "short_name": "RxFx Admin",
+  "description": "Premium administration console for RxFx Logbook.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0B0B",
+  "theme_color": "#0B0B0B",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/logo-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,144 +1,213 @@
-import React from "react";
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
-  Users, FileText, Activity, Settings, 
-  Ticket, Zap, ShoppingBag, Swords, 
-  CreditCard, MessageSquare, Award, 
-  Bell, Shield, Home, PieChart, Database,
-  Smartphone, X, Cake
+  Users, Settings,
+  Ticket, Zap, ShoppingBag,
+  CreditCard, Award,
+  Shield, PieChart,
+  Smartphone, X, Globe, Send, RefreshCw, Calendar,
+  LayoutDashboard, MessageCircle, Package, Handshake, FileCheck,
+  Link2, Bell, MessageSquare,
 } from "lucide-react";
+import { useLang } from "../context/LangContext";
+import { getDiscordInviteLink } from "../lib/supabase-admin";
 
 const Sidebar = ({ onClose }) => {
+  const { lang, setLang, languages, t } = useLang();
+  const [discordLink, setDiscordLink] = useState("https://discord.gg/saY2b2qCZ5");
+
+  useEffect(() => {
+    getDiscordInviteLink().then(res => {
+      if (res?.link) setDiscordLink(res.link);
+    }).catch(() => {});
+  }, []);
+
   const groups = [
     {
-      title: "Core",
+      title: t("core"),
       items: [
-        { name: "Mainframe", path: "/", icon: <Activity size={18} /> },
-        { name: "Analytics", path: "/analytics", icon: <PieChart size={18} /> },
-        { name: "Monitoring", path: "/monitoring/api", icon: <Database size={18} /> },
+        { name: "Dashboard", path: "/", icon: <LayoutDashboard size={16} /> },
+        { name: "Logs", path: "/analytics", icon: <PieChart size={16} /> },
+        { name: t("referrals"), path: "/referrals", icon: <Users size={16} /> },
       ]
     },
     {
-      title: "Management",
+      title: t("management"),
       items: [
-        { name: "Registry", path: "/users", icon: <Users size={18} /> },
-        { name: "Economy", path: "/economy", icon: <CreditCard size={18} /> },
-        { name: "BL4CKESS", path: "/boutique", icon: <ShoppingBag size={18} /> },
+        { name: t("registry"), path: "/users", icon: <Users size={16} /> },
+        { name: t("economy"), path: "/economy", icon: <CreditCard size={16} /> },
+        { name: "Billing", path: "/billing", icon: <Zap size={16} /> },
+        { name: t("boutique"), path: "/boutique", icon: <ShoppingBag size={16} /> },
+        { name: t("suby_products"), path: "/suby-products", icon: <Package size={16} /> },
+        { name: "Checkout Links", path: "/suby-checkout-links", icon: <Link2 size={16} /> },
       ]
     },
     {
-      title: "Engine",
+      title: "Notifications",
       items: [
-        { name: "Arena", path: "/arena", icon: <Swords size={18} /> },
-        { name: "Social", path: "/social", icon: <MessageSquare size={18} /> },
+        { name: "Notifications", path: "/notifications", icon: <Bell size={16} /> },
       ]
     },
     {
-      title: "Assets",
+      title: t("assets"),
       items: [
-        { name: "Identity", path: "/badges", icon: <Award size={18} /> },
-        { name: "Campaigns", path: "/promotions", icon: <Ticket size={18} /> },
+        { name: t("identity"), path: "/identity", icon: <Award size={16} /> },
+        { name: t("campaigns"), path: "/promotions", icon: <Ticket size={16} /> },
+        { name: t("asset_rules"), path: "/assets", icon: <Award size={16} /> },
       ]
     },
     {
-      title: "Automations",
+      title: t("autres"),
       items: [
-        { name: "Birthdays", path: "/birthdays", icon: <Cake size={18} /> },
+        { name: "Certifications", path: "/certifications", icon: <FileCheck size={16} /> },
+        { name: "Partnerships", path: "/partnerships", icon: <Handshake size={16} /> },
       ]
     },
     {
-      title: "System",
+      title: "Chat IA",
       items: [
-        { name: "Security", path: "/security", icon: <Shield size={18} /> },
-        { name: "Support", path: "/support", icon: <Smartphone size={18} /> },
-        { name: "Alerts", path: "/notifications", icon: <Bell size={18} /> },
+        { name: "💬 Chat avec Lia", path: "/chat-ia", icon: <MessageSquare size={16} /> },
+      ]
+    },
+    {
+      title: t("automations"),
+      items: [
+        { name: "Calendar", path: "/calendar", icon: <Calendar size={16} /> },
+        { name: t("email"), path: "/email", icon: <Send size={16} /> },
+        { name: t("sync"), path: "/sync", icon: <RefreshCw size={16} /> },
+      ]
+    },
+    {
+      title: t("system"),
+      items: [
+        { name: t("security"), path: "/security", icon: <Shield size={16} /> },
+        { name: t("support"), path: "/support", icon: <Smartphone size={16} /> },
+        { name: t("settings"), path: "/settings", icon: <Settings size={16} /> },
       ]
     }
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: { 
-      opacity: 1, 
-      x: 0,
-      transition: { staggerChildren: 0.05, delayChildren: 0.2 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, x: -10 },
-    visible: { opacity: 1, x: 0 }
-  };
-
   return (
-    <motion.aside 
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
-      className="flex h-full w-full flex-col bg-black text-white border-r border-[#222222] overflow-y-auto no-scrollbar font-geist"
+    <motion.aside
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex h-full w-full flex-col overflow-y-auto"
     >
-      {/* Sidebar Header */}
-      <motion.div 
-        variants={itemVariants}
-        className="flex items-center px-8 py-10 justify-between border-b border-[#222222] bg-white/[0.01]"
+      {/* Header */}
+      <div className="flex items-center px-6 py-8 justify-between border-b"
+        style={{ borderColor: "oklch(1 0 0 / 7%)" }}
       >
-        <div className="flex items-center space-x-3">
-          <motion.div 
-            whileHover={{ rotate: 180 }}
-            className="w-8 h-8 bg-cyan-500 flex items-center justify-center text-black font-black font-equinox"
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center border shadow-[0_0_12px_rgba(0,188,212,0.15)]"
+            style={{ background: "#000", borderColor: "color-mix(in oklab, var(--cyan) 30%, transparent)" }}
           >
-            R
-          </motion.div>
-          <h1 className="text-[10px] font-black tracking-[0.4em] uppercase font-equinox text-white">RxFx Logbook Admin</h1>
+            <img src="/logo.png" alt="Logo" className="w-5 h-5 object-contain" />
+          </div>
+          <h1 className="text-[10px] font-black tracking-[0.3em] uppercase text-white/80 font-heading leading-tight">
+            RxFx<br/>Admin
+          </h1>
         </div>
-        <button onClick={onClose} className="lg:hidden p-2 text-[#444444] hover:text-white">
-          <X size={20} />
+        <button onClick={onClose} className="lg:hidden p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition">
+          <X size={18} />
         </button>
-      </motion.div>
-      
+      </div>
+
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-8 space-y-8">
+      <nav className="flex-1 px-3 py-6 space-y-6">
         {groups.map((group) => (
-          <motion.div variants={itemVariants} key={group.title} className="space-y-4">
-            <p className="px-4 text-[7px] font-black uppercase tracking-[0.5em] text-white/10">
-               {group.title}
+          <div key={group.title} className="space-y-1">
+            <p className="px-3 mb-2 text-[8px] font-black uppercase tracking-[0.4em] text-white/10">
+              {group.title}
             </p>
-            <div className="space-y-1">
-              {group.items.map((item) => (
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                // Action items (non-routing) — dispatch custom event
+                if (item.action) {
+                  return (
+                    <button
+                      key={item.name}
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent("admin-open-meme"));
+                        onClose?.();
+                      }}
+                      className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-300 text-white/30 hover:text-white/70 hover:bg-white/5"
+                    >
+                      <div className="shrink-0">{item.icon}</div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.15em] font-heading">{item.name}</span>
+                    </button>
+                  );
+                }
+                return (
                 <NavLink
                   key={item.name}
                   to={item.path}
                   onClick={onClose}
                   className={({ isActive }) =>
-                    `flex items-center px-4 py-3 rounded-none transition-all duration-300 group border-l-2 ${
-                      isActive 
-                        ? "bg-white/5 text-white border-cyan-500" 
-                        : "text-[#444444] border-transparent hover:text-white hover:bg-white/[0.02]"
+                    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-300 ${
+                      isActive
+                        ? "text-white shadow-[0_0_20px_rgba(0,188,212,0.15)]"
+                        : "text-white/30 hover:text-white/70 hover:bg-white/5"
                     }`
                   }
+                  style={({ isActive }) => isActive
+                    ? { 
+                        background: "oklch(0.74 0.13 209 / 12%)", 
+                        borderLeft: "2px solid var(--cyan)",
+                        boxShadow: "inset 0 0 12px oklch(0.74 0.13 209 / 5%)"
+                      }
+                    : {}
+                  }
                 >
-                  <motion.div 
-                    whileHover={{ x: 5 }}
-                    className="flex items-center space-x-4"
-                  >
-                    <div className="group-hover:text-cyan-500 transition-colors">{item.icon}</div>
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">{item.name}</span>
-                  </motion.div>
+                  {({ isActive }) => (
+                    <>
+                      <div className={`shrink-0 transition-colors ${isActive ? "text-cyan" : ""}`}>{item.icon}</div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.15em] font-heading">{item.name}</span>
+                    </>
+                  )}
                 </NavLink>
-              ))}
+                );
+              })}
             </div>
-          </motion.div>
+          </div>
         ))}
       </nav>
 
-      {/* Sidebar Footer */}
-      <motion.div variants={itemVariants} className="p-6 border-t border-[#222222] bg-[#050505]">
-        <div className="flex items-center space-x-3">
-           <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]"></div>
-           <span className="text-[7px] font-black text-[#444444] uppercase tracking-widest font-mono text-cyan-500/50">Terminal_Secure_Link</span>
+      {/* Discord Community */}
+      <div className="px-3 mb-2">
+        <a
+          href={discordLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 text-white/30 hover:text-white hover:bg-[#5865F2]/10 border border-transparent hover:border-[#5865F2]/30"
+        >
+          <MessageCircle size={16} className="text-[#5865F2]" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">Discord Community</span>
+        </a>
+      </div>
+
+      {/* Footer */}
+      <div className="p-5 mt-auto border-t" style={{ borderColor: "oklch(1 0 0 / 6%)", background: "oklch(0.08 0.015 255 / 0.4)" }}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5 text-white/25">
+            <Globe size={11} className="text-cyan/50" />
+            <span className="text-[8px] font-black uppercase tracking-widest">{t("language")}</span>
+          </div>
+          <select
+            value={lang}
+            onChange={(e) => setLang(e.target.value)}
+            className="bg-transparent text-[9px] font-bold text-cyan uppercase outline-none cursor-pointer"
+          >
+            {languages.map(l => (
+              <option key={l.code} value={l.code} className="bg-black text-white">{l.code}</option>
+            ))}
+          </select>
         </div>
-      </motion.div>
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald animate-pulse shadow-[0_0_8px_#10b981]" />
+          <span className="text-[7px] font-black text-cyan/30 uppercase tracking-widest">{t("terminal_secure")}</span>
+        </div>
+      </div>
     </motion.aside>
   );
 };

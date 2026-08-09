@@ -1,29 +1,19 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getFunctions } from "firebase/functions";
-import { getStorage } from "firebase/storage";
-import { getAnalytics } from "firebase/analytics";
-
 /**
- * NEXUS CORE - FIREBASE CONFIGURATION
- * Project: RxFx Logbook
+ * Firebase bridge — DISABLED (Supabase-only admin).
+ *
+ * L'admin utilise Supabase comme backend unique via dev-supabase-direct
+ * (local) ou supabase-admin.js (prod). Firebase n'est plus nécessaire.
+ * Toutes les pages admin ont des gardes `if (!db)` et fonctionnent en
+ * mode dégradé quand Firebase est absent.
  */
-const firebaseConfig = {
-  apiKey: "AIzaSyBDiAmEKb2xNq4sqrwZ2W8qJPs47T1izr0",
-  authDomain: "rxfx-logbook-38944.firebaseapp.com",
-  projectId: "rxfx-logbook-38944",
-  storageBucket: "rxfx-logbook-38944.firebasestorage.app",
-  messagingSenderId: "587977763986",
-  appId: "1:587977763986:web:3ca86cc69f5fe6463cca4b",
-  measurementId: "G-HJC7L0X586"
-};
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const functions = getFunctions(app);
-export const storage = getStorage(app);
-export const analytics = getAnalytics(app);
+// Tous les exports à null — les pages vérifient `if (!db)` avant usage.
+const auth = null;
+const db = null;
+const functions = null;
+const storage = null;
+const analytics = null;
+let app = null;
 
+export { auth, db, functions, storage, analytics };
 export default app;
