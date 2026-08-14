@@ -38,7 +38,9 @@ export {
   batchSyncToSheets,
 };
 
-const APPS_SCRIPT_URL = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL || "";
+const APPS_SCRIPT_URL =
+  import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL ||
+  "https://script.google.com/macros/s/AKfycbw0iXt6c99ZTvBmFAngfIU3xv3xpK0U4nNENy6GwlYwVp5YRG6bXABB8dIr-yNeBeLz/exec";
 
 async function postToAppsScript(action, payload = {}) {
   if (!APPS_SCRIPT_URL) {
