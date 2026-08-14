@@ -136,7 +136,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ]),
   );
 
+  const wantStream = body.stream === true;
+
   for (const model of cascade) {
+    if (wantStream) {
+      // Streaming: the client parses SSE `data: {choices:[{delta:{content}}]}`
+      // lines. We fetch OpenRouter with stream:true and relay the raw SSE body
+      // untouched — the exact same shape the client already expects.
+      const upstream = await fetchOpenRouter(apiKey, model, allMessages, maxTokens, true);
+      if (!upstream.ok) {
+        console.warn(`[chat] ${model} stream → ${upstream.status}, trying next…`);
+        continue;
+      }
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-store");
+      if (upstream.body) {
+        const reader = upstream.body.getReader();
+        const pump = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              res.end();
+              return;
+            }
+            res.write(Buffer.from(value));
+          }
+        };
+        try {
+          await pump();
+        } catch {
+          res.end();
+        }
+      } else {
+        res.end();
+      }
+      return;
+    }
+
     const text = await tryOpenRouterModel(apiKey, model, allMessages, maxTokens);
     if (text) {
       res.status(200).json({ text });
@@ -151,14 +187,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   return;
 }
 
-// Try a single model via OpenRouter. Returns parsed text or null.
-async function tryOpenRouterModel(
+// Fetch OpenRouter with an explicit stream flag. Returns the raw Response.
+async function fetchOpenRouter(
   apiKey: string,
   model: string,
   messages: ChatMessage[],
   maxTokens: number,
-): Promise<string | null> {
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  stream: boolean,
+): Promise<Response> {
+  return fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -169,11 +206,21 @@ async function tryOpenRouterModel(
     body: JSON.stringify({
       model,
       messages,
-      stream: false,
+      stream,
       max_tokens: maxTokens,
       temperature: 0.7,
     }),
   });
+}
+
+// Try a single model via OpenRouter (non-streaming). Returns parsed text or null.
+async function tryOpenRouterModel(
+  apiKey: string,
+  model: string,
+  messages: ChatMessage[],
+  maxTokens: number,
+): Promise<string | null> {
+  const res = await fetchOpenRouter(apiKey, model, messages, maxTokens, false);
   if (!res.ok) return null;
   const json: any = await res.json().catch(() => null);
   const text = json?.choices?.[0]?.message?.content;
