@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { getAdminStats, getTradesSummary, listTable, safeCallProxy } from "../lib/supabase-admin";
+import { getAdminStats, getTradesSummary, getAllUsers, listTable, safeCallProxy } from "../lib/supabase-admin";
 import {
   Activity, Users, DollarSign, TrendingUp, RefreshCw,
   Database, Zap, Server, ShieldCheck, AlertTriangle,
@@ -40,11 +40,13 @@ const AdminDashboard = () => {
       setTradesSum(t);
 
       // Fetch recent profiles as identity nodes via the secure proxy
+      // Using getAllUsers ensures we get the most recent ones (sorted by created_at)
       try {
-        const recentProfiles = await listTable('profiles', 10);
+        const recentProfiles = await getAllUsers();
         if (recentProfiles) {
-          setIdentityNodes(recentProfiles.map(p => ({
-            id: p.id?.slice(0, 12) || '---',
+          setIdentityNodes(recentProfiles.slice(0, 10).map(p => ({
+            uid: p.id, // Keep full ID for key
+            id: p.id?.slice(0, 8) || '---',
             displayName: p.display_name || p.email?.split('@')[0] || 'Unknown',
             email: p.email || '',
             status: p.email ? 'ACTIVE' : 'PENDING',
@@ -91,6 +93,12 @@ const AdminDashboard = () => {
     }
   }, [loadData]);
 
+  const formatCurrency = (n) => {
+    const val = Number(n || 0);
+    const sign = val > 0 ? "+" : "";
+    return `${sign}$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   const statCards = [
     {
       label: "Total Users",
@@ -107,7 +115,7 @@ const AdminDashboard = () => {
       bg: "bg-emerald/10 border-emerald/20"
     },
     {
-      label: "Pro Users",
+      label: "Pro & Elite",
       value: stats.proUsers + stats.eliteUsers,
       icon: TrendingUp,
       color: "text-amber-400",
@@ -122,9 +130,7 @@ const AdminDashboard = () => {
     },
     {
       label: "Total P&L",
-      value: tradesSum.totalPnl != null
-        ? `$${Number(tradesSum.totalPnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-        : "$0.00",
+      value: tradesSum.totalPnl != null ? formatCurrency(tradesSum.totalPnl) : "$0.00",
       icon: DollarSign,
       color: (tradesSum.totalPnl || 0) >= 0 ? "text-emerald" : "text-rose",
       bg: (tradesSum.totalPnl || 0) >= 0 ? "bg-emerald/10 border-emerald/20" : "bg-rose/10 border-rose/20"
@@ -133,7 +139,7 @@ const AdminDashboard = () => {
 
   const systemStatuses = [
     { label: "Supabase Client", status: error ? "Error" : "Connected", color: error ? "text-rose" : "text-emerald" },
-    { label: "Supabase Auth", status: "Active", color: "text-amber-400" },
+    { label: "Supabase Auth", status: "Active", color: "text-emerald" },
     { label: "Data Layer", status: (stats.totalUsers > 0 || tradesSum.totalTrades > 0) ? "Populated" : "Empty", color: (stats.totalUsers > 0 || tradesSum.totalTrades > 0) ? "text-emerald" : "text-white/30" },
     { label: "API Health", status: error ? "Offline" : "OK", color: error ? "text-rose" : "text-emerald" },
   ];
@@ -304,12 +310,12 @@ const AdminDashboard = () => {
               leftStat: {
                 label: "Total Users",
                 value: String(stats.totalUsers),
-                trend: stats.totalUsers > 0 ? { direction: "up", label: "Active" } : undefined,
+                trend: stats.activeUsers > 0 ? { direction: "up", label: `${stats.activeUsers} Active` } : undefined,
               },
               rightStat: {
-                label: "Pro Users",
+                label: "Premium Users",
                 value: String(stats.proUsers + stats.eliteUsers),
-                trend: stats.proUsers > 0 ? { direction: "up", label: "Premium" } : undefined,
+                trend: (stats.proUsers + stats.eliteUsers) > 0 ? { direction: "up", label: "Elite/Pro" } : undefined,
               },
               ctaLabel: "View Registry",
               onCta: () => navigate("/users"),
@@ -322,7 +328,7 @@ const AdminDashboard = () => {
               glowColor: "oklch(0.87 0.27 142 / 0.12)",
               leftStat: {
                 label: "Total P&L",
-                value: `$${Number(tradesSum.totalPnl || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+                value: formatCurrency(tradesSum.totalPnl),
                 trend: (tradesSum.totalPnl || 0) >= 0 ? { direction: "up", label: "Profit" } : { direction: "down", label: "Loss" },
               },
               rightStat: {
@@ -424,10 +430,10 @@ const AdminDashboard = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: "Win Rate", value: `${tradesSum.winRate || 0}%`, color: "text-emerald" },
-              { label: "Winning Trades", value: tradesSum.wins || 0, color: "text-cyan" },
+              { label: "Win Rate", value: `${tradesSum.winRate || 0}%`, color: (tradesSum.winRate || 0) >= 50 ? "text-emerald" : "text-rose" },
+              { label: "Winning Trades", value: tradesSum.wins || 0, color: "text-emerald" },
               { label: "Total Trades", value: tradesSum.totalTrades, color: "text-white" },
-              { label: "Win Ratio", value: `${tradesSum.wins}/${tradesSum.totalTrades}`, color: "text-amber-400" },
+              { label: "Win Ratio", value: `${tradesSum.wins}/${tradesSum.totalTrades}`, color: (tradesSum.winRate || 0) >= 50 ? "text-emerald" : "text-rose" },
             ].map(item => (
               <div
                 key={item.label}
@@ -466,8 +472,8 @@ const AdminDashboard = () => {
               </thead>
               <tbody>
                 {identityNodes.map((node) => (
-                  <tr key={node.id}>
-                    <td className="font-mono text-[10px] text-cyan/70">{node.id}</td>
+                  <tr key={node.uid}>
+                    <td className="font-mono text-[10px] text-cyan/70">{node.id}...</td>
                     <td>
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-cyan/10 border border-cyan/20 flex items-center justify-center">
@@ -485,7 +491,10 @@ const AdminDashboard = () => {
                       {node.createdAt ? new Date(node.createdAt).toLocaleDateString() : '—'}
                     </td>
                     <td>
-                      <button className="text-white/20 hover:text-white/50 transition p-1">
+                      <button 
+                        onClick={() => navigate(`/users/${node.uid}`)}
+                        className="text-white/20 hover:text-white/50 transition p-1"
+                      >
                         <MoreHorizontal size={14} />
                       </button>
                     </td>
@@ -509,5 +518,6 @@ const AdminDashboard = () => {
     </PageShell>
   );
 };
+
 
 export default AdminDashboard;

@@ -8,6 +8,8 @@
  * process.env.
  */
 
+import { supabase as realtimeSupabase } from "./supabase";
+
 const PROXY_URL = "/api/supabase-direct";
 
 async function callProxy(action, payload = {}) {
@@ -83,20 +85,130 @@ export function subscribeToTable(tableName, callback) {
   return () => { active = false; if (timer) clearTimeout(timer); };
 }
 
-export function subscribeToSupportTickets(callback, intervalMs = 8000) {
+/**
+ * `subscribeToSupportTickets`
+ * ---------------------------
+ * Subscribe to Supabase Realtime (canal `postgres_changes` sur
+ * `public.support_tickets`) + fallback polling.
+ *
+ * Pourquoi realtime + polling :
+ *  - **Realtime** : un INSERT/UPDATE/DELETE de la part d'un autre client
+ *    (utilisateur côté mobile, autre admin, webhook Stripe…) déclenche
+ *    un push WebSocket → callback invoqué sous ~50ms.
+ *  - **Polling fallback** (intervalle `intervalMs`) : si Realtime se
+ *    déconnecte (réseau mobile, idle tab, WebSocket fermé par le proxy),
+ *    on re-fetch la liste complète toutes les N secondes pour ne jamais
+ *    laisser la UI se désynchroniser.
+ *
+ * RLS-aware : le canal Realtime ne pousse QUE les rows visibles par le
+ * JWT courant (admin → tout, user → ses tickets uniquement).
+ *
+ * @param {(rows: any[]) => void} callback              appelé à chaque update
+ * @param {number}                 intervalMs           polling fallback (def 30s)
+ * @param {{
+ *   onInsert?: (row: any) => void;
+ *   onUpdate?: (row: any, old: any) => void;
+ *   onDelete?: (old: any) => void;
+ *   channelName?: string;
+ * }} [options]
+ * @returns {() => void} unsubscribe function
+ */
+export function subscribeToSupportTickets(callback, intervalMs = 30000, options = {}) {
+  const { onInsert, onUpdate, onDelete, channelName } = options;
+  const channelId = channelName || `support_tickets_${Math.random().toString(36).slice(2, 9)}`;
   let active = true;
   let timer = null;
-  async function poll() {
+  let channel = null;
+  let lastEventAt = Date.now();
+
+  /** Refetch complet (toujours après chaque event Realtime pour rester
+   *  simple : on évite les bugs de diff, on source-of-truth la DB. */
+  async function fetchAll() {
     if (!active) return;
     try {
       const tickets = await listSupportTickets("all", 100);
       if (active) callback(tickets);
     } catch (err) {
-      console.warn("[supabase-admin] poll support_tickets:", err?.message);
+      console.warn("[support-realtime] poll failed:", err?.message);
       if (active) callback([]);
     }
-    if (active) timer = setTimeout(poll, intervalMs);
   }
-  poll();
-  return () => { active = false; if (timer) clearTimeout(timer); };
+
+  /** Setup Realtime channel. Si l'env n'a pas le module (build SSR etc.) on
+   *  bascule silencieusement sur le polling seul. */
+  function setupChannel() {
+    if (!realtimeSupabase || !realtimeSupabase.channel) {
+      console.warn("[support-realtime] supabase channel() absent, polling only");
+      return;
+    }
+    try {
+      channel = realtimeSupabase
+        .channel(channelId, {
+          config: {
+            presence: { key: "" },
+            broadcast: { self: false, ack: false },
+            // private channel — events server-side, RLS filtré
+          },
+        })
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "support_tickets" },
+          (payload) => {
+            if (!active) return;
+            lastEventAt = Date.now();
+            // Hook optionnel côté caller (toast, badge animation…)
+            try {
+              if (payload?.eventType === "INSERT") onInsert?.(payload.new);
+              if (payload?.eventType === "UPDATE") onUpdate?.(payload.new, payload.old);
+              if (payload?.eventType === "DELETE") onDelete?.(payload.old);
+            } catch (hookErr) {
+              console.warn("[support-realtime] callback hook threw:", hookErr);
+            }
+            // Refetch pour merge proprement dans la liste
+            fetchAll();
+          }
+        )
+        .subscribe((status, err) => {
+          if (status === "SUBSCRIBED") {
+            console.info("[support-realtime] subscribed on", channelId);
+          } else if (status === "CHANNEL_ERROR") {
+            console.warn("[support-realtime] channel error:", err?.message || err);
+          } else if (status === "TIMED_OUT") {
+            console.warn("[support-realtime] timed out, falling back to polling");
+          } else if (status === "CLOSED") {
+            console.info("[support-realtime] closed");
+          }
+        });
+    } catch (err) {
+      console.warn("[support-realtime] setup failed, polling only:", err?.message);
+      channel = null;
+    }
+  }
+
+  // Initial fetch immédiat + setup du canal Realtime
+  fetchAll();
+  setupChannel();
+
+  // Polling fallback : si aucun event Realtime depuis `intervalMs`, on refetch.
+  // Garantit la convergence même quand le WebSocket dort ou est éteint.
+  timer = setInterval(() => {
+    if (!active) return;
+    if (Date.now() - lastEventAt >= intervalMs - 500) {
+      fetchAll();
+    }
+  }, intervalMs);
+
+  return () => {
+    active = false;
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+    if (channel) {
+      try {
+        realtimeSupabase.removeChannel(channel).catch(() => {});
+      } catch (_) {}
+      channel = null;
+    }
+  };
 }

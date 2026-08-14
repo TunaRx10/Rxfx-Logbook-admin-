@@ -25,20 +25,21 @@ export const AuthProvider = ({ children }) => {
     // let a persisted client flag grant production admin privileges.
     if (import.meta.env.DEV && localStorage.getItem("rxfx_force_admin") === "true") return true;
     try {
-      const { data: adminData, error: adminErr } = await supabase
-        .from('admins')
-        .select('role, status')
-        .eq('id', user.id)
-        .single();
-
-      if (!adminErr && adminData?.status === 'active') return true;
-
-      const { data: profileData } = await supabase
+      // Le rôle admin se lit désormais directement dans `profiles.role`
+      // (la table `admins` legacy n'existe plus dans le schéma courant).
+      // On charge aussi `status` et `subscription_tier` pour les pages qui
+      // en ont besoin sans faire un round-trip supplémentaire.
+      const { data: profileData, error: profileErr } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, status, subscription_tier')
         .eq('id', user.id)
         .single();
 
+      if (profileErr) {
+        console.warn("[AuthContext] profiles fetch err:", profileErr);
+        return false;
+      }
+      if (profileData?.status && profileData.status !== 'active') return false;
       return profileData?.role === 'admin';
     } catch (err) {
       console.error("AuthContext: Profile fetch error", err);

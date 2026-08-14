@@ -17,51 +17,80 @@ const CalendarPage = () => {
   const [newEvent, setNewEvent] = useState({ title: "", description: "", start_date: "", end_date: "", location: "" });
   const [syncingSubs, setSyncingSubs] = useState(false);
 
-  const available = true; // Supabase backend
+  // `available` is set true if we can reach the campaign_events table.
+  // It used to be hardcoded `true` which meant the "Apps Script non déployé"
+  // banner was unreachable AND we never knew if Supabase was down. Now we
+  // detect by capturing the first fetch's outcome.
+  const [available, setAvailable] = useState(true);
 
-  // Normalize Supabase calendar rows → UI fields
+  // Normalize Supabase calendar rows → UI fields.
+  // ⚠️ Le schéma principal (001) n'avait pas `start_date`/`end_date`,
+  // CalendarPage s'appuyait dessus et finissait sur "Invalid Date" dans
+  // toutes les lignes. Maintenant on TOLÈRE les 3 cas :
+  //   1. `start_date` présent (optimal, post-migration 002)
+  //   2. `start_date` absent mais `created_at` présent (legacy rows)
+  //   3. rien  → null (la ligne sera filtrée de la liste)
   function normalizeEvents(rows) {
-    return (rows || []).map((e) => ({
-      ...e,
-      start: e.start_date || e.date || e.start,
-      end: e.end_date || e.end,
-      allDay: !(e.start_date || e.date || e.start)?.includes("T"),
-      location: e.location || "",
-    }));
+    return (rows || [])
+      .map((e) => {
+        const rawStart = e.start_date || e.date || e.start || e.created_at || null;
+        if (!rawStart) return null;
+        const start = new Date(rawStart);
+        if (Number.isNaN(start.getTime())) return null;
+        return {
+          ...e,
+          start: rawStart,
+          end: e.end_date || e.end || start.getTime(),
+          allDay: !String(rawStart).includes("T"),
+          location: e.location || "",
+        };
+      })
+      .filter(Boolean);
   }
 
-  // Load calendar events (Supabase polling)
+  // Load calendar events (Supabase polling).
+  // `available` flips to true only after the FIRST successful fetch ; failed
+  // fetches set it false (banner stays visible until reload).
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       try {
         const rows = await listTable("campaign_events", 100);
+        if (cancelled) return;
         setEvents(normalizeEvents(rows));
+        setAvailable(true);
         setFetchError(null);
       } catch (err) {
+        if (cancelled) return;
         console.error("[calendar] fetch failed:", err);
         setFetchError(err?.message || "Impossible de charger le calendrier");
+        setAvailable(false);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     load();
     const t = setInterval(load, 15000);
-    return () => clearInterval(t);
+    return () => { cancelled = true; clearInterval(t); };
   }, []);
 
-  // Mail queue (Supabase polling)
+  // Mail queue (Supabase polling). La table `mail_queue` peut ne pas
+  // exister dans le schéma : on capture l'erreur silencieusement et la
+  // file d'attente reste vide sans spammer la console toutes les 10s.
   useEffect(() => {
+    let cancelled = false;
     async function loadQueue() {
       try {
         const rows = await listTable("mail_queue", 100);
-        setMailQueue(rows || []);
+        if (!cancelled) setMailQueue(rows || []);
       } catch (e) {
-        console.warn("[calendar] mail queue failed:", e);
+        // Silencieux — pas de spam console si la table n'existe pas.
+        if (!cancelled) setMailQueue([]);
       }
     }
     loadQueue();
     const t = setInterval(loadQueue, 10000);
-    return () => clearInterval(t);
+    return () => { cancelled = true; clearInterval(t); };
   }, []);
 
   async function handleCreateEvent() {

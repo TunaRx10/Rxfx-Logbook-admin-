@@ -363,3 +363,36 @@
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
   }
 }
+
+/* =============================================================
+   GLOBAL ZOOM — viewport-conditional (PC ↔ mobile).
+   Aligned with remix-of-trade-journal-pro/src/styles.css so both
+   apps pixel-match at the same viewport width.
+
+   PC      (≥ 768px) → zoom 0.7  (dashboard fits a 1920px screen)
+   Mobile  (< 768px) → zoom 1.0  (native size, phones are tiny)
+   Fallback `font-size` for Safari <= 13 / old WebKit (no `zoom`).
+
+   Placed AFTER all Tailwind `@layer` blocks: raw CSS appearing later
+   in the file wins cascade over `@layer base` resets.
+   ============================================================= */
+
+/* Mobile : 100% natif (primary, mobile-first). */
+@media (max-width: 767.98px) {
+  @supports (zoom: 1) {
+    html { zoom: 1; }
+  }
+  @supports not (zoom: 1) {
+    html { font-size: 100%; }
+  }
+}
+
+/* Desktop / wide : 70%. */
+@media (min-width: 768px) {
+  @supports (zoom: 0.7) {
+    html { zoom: 0.7; }
+  }
+  @supports not (zoom: 0.7) {
+    html { font-size: 70%; }
+  }
+}

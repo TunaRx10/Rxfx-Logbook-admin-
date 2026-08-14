@@ -76,8 +76,16 @@ const Auth = () => {
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center p-6"
-      style={{ background: "oklch(0.06 0.015 255)", color: "#f5f5f5", fontFamily: "Inter, system-ui, sans-serif" }}
+      className="grid min-h-screen w-full place-items-center p-6"
+      style={{
+        background: "oklch(0.06 0.015 255)",
+        color: "#f5f5f5",
+        fontFamily: "Inter, system-ui, sans-serif",
+        // Isolation du viewport pour ne pas hériter d'une hauteur de AdminLayout
+        // parente (utilise `100dvh` plutôt que `100vh` pour éviter le jumping
+        // sur mobile quand la barre d'URL apparaît/disparaît).
+        minHeight: "100dvh",
+      }}
     >
       {/* Subtle grid */}
       <div

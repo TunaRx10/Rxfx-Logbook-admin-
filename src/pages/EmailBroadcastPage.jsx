@@ -11,6 +11,7 @@ import { getAllUsersWithSubs } from "../lib/supabase-admin";
 import { DataState } from "../components/ui/DataState";
 import { PageShell, PageHeader } from "../components/ui/PagePrimitives";
 import { generateEmail, isChatReady } from "../lib/admin-ai";
+import { sendEmail, sendBulkEmail } from "../lib/google-api";
 
 const EmailBroadcastPage = () => {
   const [users, setUsers] = useState([]);
@@ -177,21 +178,28 @@ const EmailBroadcastPage = () => {
           body: htmlBody.replace(/\{\{name\}\}/g, `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Trader"),
         }));
 
-      // Log to Supabase mail_queue
+      // 1) Envoi immédiat via Apps Script (Gmail)
+      const bulk = await sendBulkEmail(recipients);
+
+      // 2) Trace dans Supabase mail_queue (visible par l'admin)
       for (const r of recipients) {
         try {
           await insertRow("mail_queue", {
             to_email: r.to,
             subject: r.subject,
-            body: r.body.slice(0, 2000),
-            status: "queued",
+            body_html: r.body.slice(0, 2000),
+            email_type: "broadcast",
+            status: "sent",
+            dedupe_key: crypto.randomUUID(),
+            provider: "gmail",
+            sent_at: new Date().toISOString(),
           });
         } catch (e) {
           console.warn("[email] queue insert failed:", e);
         }
       }
 
-      toast.success(`${recipients.length} emails mis en file (Supabase mail_queue).`);
+      toast.success(`${bulk.sent} email(s) envoyé(s)${bulk.failed ? `, ${bulk.failed} échec(s)` : ""}.`);
       setSelectedUsers([]);
       setSubject("");
       setHtmlBody("");
@@ -211,14 +219,18 @@ const EmailBroadcastPage = () => {
     }
     try {
       const body = htmlBody.replace(/\{\{name\}\}/g, `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Trader");
+      await sendEmail(user.email, subject, body);
       await insertRow("mail_queue", {
         to_email: user.email,
         subject,
-        body: body.slice(0, 2000),
+        body_html: body.slice(0, 2000),
+        email_type: "broadcast",
         status: "sent",
+        dedupe_key: crypto.randomUUID(),
+        provider: "gmail",
         sent_at: new Date().toISOString(),
       });
-      toast.success(`Email mis en file pour ${user.email}`);
+      toast.success(`Email envoyé à ${user.email}`);
     } catch (error) {
       toast.error(`Erreur: ${error.message}`);
     }
@@ -459,9 +471,12 @@ const EmailBroadcastPage = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 text-white/40 font-mono text-xs">{item.to_email || item.to || "—"}</td>
-                  <td className="px-6 py-4 text-white/70 text-xs max-w-[300px] truncate">{item.message?.subject}</td>
+                  <td className="px-6 py-4 text-white/70 text-xs max-w-[300px] truncate">
+                    {item.email_type ? <span className="text-white/25 text-[9px] uppercase mr-1">{item.email_type}</span> : null}
+                    {item.subject}
+                  </td>
                   <td className="px-6 py-4 text-white/25 text-[10px]">
-                    {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : ""}
+                    {item.created_at ? new Date(item.created_at).toLocaleString() : ""}
                   </td>
                   <td className="px-6 py-4 text-white/25 text-[10px]">
                     {item.error && <span className="text-red-500">{item.error.slice(0, 60)}</span>}

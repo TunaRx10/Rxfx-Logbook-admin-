@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   MessageSquare, Send, Clock, AlertCircle, Search,
   CheckCircle2, XCircle, User, Bot, RefreshCw, HeadphonesIcon,
-  Loader2
+  Loader2, ShieldCheck
 } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
@@ -13,8 +13,14 @@ import {
   updateSupportTicket,
   subscribeToSupportTickets,
 } from "../lib/supabase-admin";
+import { useAuth } from "../context/AuthContext";
 
 const SupportPage = () => {
+  // 🔒 identifie *qui* répond aux tickets côté UI (réattribué à chaque message).
+  // Le `user_id` du user courant est encodé dans le payload de chaque
+  // réponse admin pour traçabilité côté DB.
+  const { currentUser, isAdmin } = useAuth();
+
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -34,17 +40,43 @@ const SupportPage = () => {
     }, 3000);
   }
 
-  // Tickets from Supabase (polling)
+  // Tickets from Supabase **via Realtime** (canal postgres_changes) + polling
+  // fallback. Un INSERT/UPDATE/DELETE déclenche un refresh quasi-instantané ;
+  // en cas de WebSocket down ou page en arrière-plan, on refetch toutes les
+  // 30s pour rester synchro.
   useEffect(() => {
-    const unsub = subscribeToSupportTickets((rows) => {
-      setTickets(rows);
-      setLoading(false);
-      setError(null);
-    }, 8000);
-    return () => unsub();
-  }, []);
+    if (!currentUser) return; // pas de session → pas de subscription
 
-  // Also try immediate fetch
+    const seenIds = new Set();
+    const stamp = new Date().toISOString();
+    const unsub = subscribeToSupportTickets(
+      (rows) => {
+        setTickets(rows);
+        setLoading(false);
+        setError(null);
+      },
+      30000, // polling fallback cadence
+      {
+        onInsert: (row) => {
+          // Toast live uniquement pour les nouveaux tickets (pas le
+          // premier load où toutes les rows sont des "INSERT" anciens).
+          if (seenIds.has(row?.id)) return;
+          seenIds.add(row?.id);
+          if (row?.created_at && row.created_at < stamp) return;
+          // Notification non bloquante (info, pas error)
+          toast.info(
+            `🎫 Nouveau ticket : ${row?.subject || row?.user_email || "Anonyme"}`,
+            {
+              description: row?.status === "open" ? "Statut : ouvert" : row?.status,
+            }
+          );
+        },
+      }
+    );
+    return () => unsub();
+  }, [currentUser]);
+
+  // Also try immediate fetch (one-shot safety net if Realtime is slow to SUBSCRIBED)
   useEffect(() => {
     listSupportTickets("all", 100)
       .then((rows) => { setTickets(rows); setLoading(false); })
@@ -89,20 +121,34 @@ const SupportPage = () => {
 
   async function sendReply(id) {
     if (!replyText.trim()) return;
+    if (!currentUser) {
+      toast.error("Session expirée — reconnectez-vous.");
+      return;
+    }
     try {
       const ticket = tickets.find(t => t.id === id);
       const replies = Array.isArray(ticket?.replies) ? [...ticket.replies] : [];
-      const newReply = { text: replyText, from: "admin", timestamp: new Date().toISOString() };
+      // 🔒 Attribution réelle : on logge l'identité de l'admin qui répond
+      // (email + uid). Display name = email court ou email complet.
+      const adminLabel = currentUser.email?.split("@")[0] || currentUser.email || "admin";
+      const myId = currentUser.id;
+      const newReply = {
+        text: replyText,
+        from: adminLabel,
+        from_id: myId,
+        from_email: currentUser.email,
+        timestamp: new Date().toISOString(),
+      };
       replies.push(newReply);
       const newStatus = ticket?.status === "open" ? "in_progress" : ticket?.status;
-      await updateSupportTicket(id, { replies, status: newStatus });
+      await updateSupportTicket(id, { replies, status: newStatus, updated_by: myId });
       setTickets((prev) =>
         prev.map((t) =>
           t.id === id ? { ...t, replies, status: newStatus } : t
         )
       );
       setReplyText("");
-      toast.success("Réponse envoyée");
+      toast.success("Réponse envoyée · " + adminLabel);
     } catch (err) {
       toast.error("Erreur: " + err.message);
     }
@@ -141,6 +187,37 @@ const SupportPage = () => {
           >
             Réessayer après migration
           </button>
+        </div>
+      )}
+
+      {/* 🔒 Identity banner : montre qui est actuellement connecté et
+          rappelle que les réponses sont attribuées. */}
+      {currentUser && (
+        <div
+          className="flex items-center gap-3 px-4 py-2.5 rounded-xl border"
+          style={{
+            borderColor: isAdmin ? "rgba(0, 188, 212, 0.25)" : "rgba(255, 255, 255, 0.08)",
+            background: isAdmin ? "rgba(0, 188, 212, 0.04)" : "rgba(255, 255, 255, 0.02)",
+          }}
+          data-test="support-identity-banner"
+        >
+          <ShieldCheck size={14} className={isAdmin ? "text-cyan" : "text-white/40"} />
+          <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-white/50">
+            Connecté en tant que
+          </span>
+          <span className="text-[11px] font-black text-white font-mono truncate max-w-[260px]">
+            {currentUser.email}
+          </span>
+          <span
+            className={clsx(
+              "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ml-auto",
+              isAdmin
+                ? "border-cyan/30 bg-cyan/10 text-cyan"
+                : "border-white/10 bg-white/[0.03] text-white/35"
+            )}
+          >
+            {isAdmin ? "Admin view · all tickets" : "User view · own tickets only"}
+          </span>
         </div>
       )}
 
