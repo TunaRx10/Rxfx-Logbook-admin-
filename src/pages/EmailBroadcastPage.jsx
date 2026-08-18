@@ -21,6 +21,7 @@ import {
   renderTemplateText,
   sampleDataFor,
 } from "../lib/email-templates";
+import { EmailContent } from "../components/email/RxFxEmail";
 
 const EmailBroadcastPage = () => {
   const [users, setUsers] = useState([]);
@@ -706,6 +707,26 @@ const EmailBroadcastPage = () => {
                     />
                   </div>
                 )}
+
+                {/* Aperçu React — template brandé (@react-email/components) */}
+                <div className="bento-card !p-4">
+                  <p className="text-[9px] uppercase tracking-widest text-white/25 mb-2">
+                    Aperçu React (template recommandé)
+                  </p>
+                  <div
+                    className="max-h-64 overflow-y-auto rounded-lg border border-white/10"
+                    style={{ background: "#0a0a0a" }}
+                  >
+                    <EmailContent
+                      title="Bienvenue, Jean Dupont"
+                      footerNote="Journalisez, analysez, progressez."
+                    >
+                      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: "#e8e8e8" }}>
+                        Votre journal de trading est prêt. Suivez votre edge et progressez trade après trade.
+                      </p>
+                    </EmailContent>
+                  </div>
+                </div>
 
                 {/* Actions */}
                 <div className="flex flex-wrap items-center gap-3">
