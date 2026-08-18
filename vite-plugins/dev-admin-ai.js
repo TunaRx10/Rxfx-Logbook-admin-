@@ -265,6 +265,30 @@ async function generateWithAI(prompt) {
   return data.choices?.[0]?.message?.content || "";
 }
 
+// ── Auth (dev) : vérifie la session admin via Apps Script ──
+// Le proxy de dev n'est atteignable qu'en localhost, mais on applique la même
+// règle que la prod (session role=admin) quand le backend est configuré.
+async function verifyDevAdminSession(req) {
+  const appsUrl =
+    process.env.GOOGLE_APPS_SCRIPT_URL || process.env.VITE_GOOGLE_APPS_SCRIPT_URL || "";
+  if (!appsUrl) return true; // backend non configuré en dev → pas de vérif
+  const authz = req.headers.authorization || "";
+  const token = authz.startsWith("Bearer ") ? authz.slice(7).trim() : "";
+  if (!token) return false;
+  try {
+    const res = await fetch(appsUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "getCurrentUser", payload: { _token: token } }),
+    });
+    if (!res.ok) return false;
+    const json = await res.json().catch(() => null);
+    return !!(json && json.ok && json.data && json.data.role === "admin");
+  } catch {
+    return false;
+  }
+}
+
 export default function devAdminAIProxy() {
   return {
     name: "dev-admin-ai-proxy",
@@ -278,11 +302,18 @@ export default function devAdminAIProxy() {
 
         // CORS headers for dev
         res.setHeader("Access-Control-Allow-Origin", "*");
-        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
         if (req.method === "OPTIONS") {
           res.writeHead(204);
           res.end();
+          return;
+        }
+
+        // Auth : session admin requise (même règle que la prod) si configuré.
+        if (!(await verifyDevAdminSession(req))) {
+          res.writeHead(403, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Admin session required" }));
           return;
         }
 
