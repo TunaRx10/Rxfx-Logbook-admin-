@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, MoreVertical, Ban, CheckCircle2,
   Pause, Trash2, X, Zap, Loader2,
-  ArrowUp, ArrowDown, ChevronsUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -28,6 +27,7 @@ import { useLang } from "../context/LangContext";
 import { PageShell, PageHeader } from "../components/ui/PagePrimitives";
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+  SortableHeader,
 } from "../components/ui/table";
 import PlanEditor from "../components/ui/PlanEditor";
 
@@ -67,26 +67,6 @@ const features = tableFeatures({
   rowSortingFeature,
   sortedRowModel: createSortedRowModel(),
 });
-
-const SortableHeader = ({ column, label }) => {
-  const sorted = column.getIsSorted();
-  return (
-    <button
-      type="button"
-      onClick={column.getToggleSortingHandler()}
-      className="inline-flex items-center gap-1.5 uppercase tracking-[0.25em] text-[inherit] font-[inherit] hover:text-white/70 transition-colors"
-    >
-      {label}
-      {sorted === "asc" ? (
-        <ArrowUp size={12} className="text-cyan" />
-      ) : sorted === "desc" ? (
-        <ArrowDown size={12} className="text-cyan" />
-      ) : (
-        <ChevronsUpDown size={12} className="opacity-30" />
-      )}
-    </button>
-  );
-};
 
 const UsersPage = () => {
   const navigate = useNavigate();

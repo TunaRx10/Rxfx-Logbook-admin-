@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 /*
@@ -8,6 +9,30 @@ import { cn } from "../../lib/utils";
  * the standard shadcn API surface (Table, TableHeader, TableBody, TableRow,
  * TableHead, TableCell, TableCaption) so pages can compose tables declaratively.
  */
+
+/*
+ * SortableHeader — clickable <th> content for TanStack Table columns.
+ * Reads the column's sort state directly and toggles on click.
+ */
+const SortableHeader = ({ column, label }) => {
+  const sorted = column.getIsSorted();
+  return (
+    <button
+      type="button"
+      onClick={column.getToggleSortingHandler()}
+      className="inline-flex items-center gap-1.5 uppercase tracking-[0.25em] text-[inherit] font-[inherit] hover:text-white/70 transition-colors"
+    >
+      {label}
+      {sorted === "asc" ? (
+        <ArrowUp size={12} className="text-cyan" />
+      ) : sorted === "desc" ? (
+        <ArrowDown size={12} className="text-cyan" />
+      ) : (
+        <ChevronsUpDown size={12} className="opacity-30" />
+      )}
+    </button>
+  );
+};
 
 const Table = React.forwardRef(({ className, ...props }, ref) => (
   <div className="table-wrap">
@@ -60,4 +85,5 @@ export {
   TableHead,
   TableCell,
   TableCaption,
+  SortableHeader,
 };

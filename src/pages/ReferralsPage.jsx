@@ -10,6 +10,16 @@ import {
 } from "lucide-react";
 import { PageShell, PageHeader, Section } from "../components/ui/PagePrimitives";
 import { DataState } from "../components/ui/DataState";
+import {
+  createColumnHelper,
+  tableFeatures,
+  rowSortingFeature,
+  createSortedRowModel,
+  useTable,
+} from "@tanstack/react-table";
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell, SortableHeader,
+} from "../components/ui/table";
 import { useLang } from "../context/LangContext";
 
 /* ── Commission Constants ─────────────────── */
@@ -34,6 +44,12 @@ const ACCENT_TOKENS = {
   purple:  { text: "text-purple-400",   glow: "from-purple-500/20 to-purple-500/0", line: "bg-purple-500/40" },
   rose:    { text: "text-rose",         glow: "from-rose/20 to-rose/0",          line: "bg-rose/40"         },
 };
+
+/* Stable feature set: sorting only (search + status filtering stay app-level). */
+const features = tableFeatures({
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+});
 
 const ReferralsPage = () => {
   const { t } = useLang();
@@ -211,6 +227,98 @@ const ReferralsPage = () => {
     });
   }, [referrals, searchTerm, statusFilter]);
 
+  const columns = (() => {
+    const helper = createColumnHelper();
+    return helper.columns([
+      helper.accessor((r) => r.referrer_email || r.referrer_id || "", {
+        id: "referrer",
+        header: ({ column }) => <SortableHeader column={column} label="Parrain" />,
+        cell: ({ row, getValue }) => (
+          <>
+            <p className="text-xs font-bold text-white font-mono truncate">{getValue() || "—"}</p>
+            <p className="text-[8px] text-white/20 font-mono mt-0.5">{row.original.referrer_id?.slice(0, 8)}</p>
+          </>
+        ),
+      }),
+      helper.accessor((r) => r.referred_email || "", {
+        id: "referred",
+        header: ({ column }) => <SortableHeader column={column} label="Filleul" />,
+        cell: ({ row, getValue }) => (
+          <>
+            <p className="text-xs font-bold text-white/70 truncate">{getValue() || "N/A"}</p>
+            <p className="text-[8px] text-white/20 mt-0.5">{row.original.referred_name || "—"}</p>
+          </>
+        ),
+      }),
+      helper.accessor("plan", {
+        id: "plan",
+        header: ({ column }) => <SortableHeader column={column} label="Plan" />,
+        cell: ({ getValue }) => <PlanPill plan={getValue()} />,
+      }),
+      helper.accessor("status", {
+        id: "status",
+        header: ({ column }) => <SortableHeader column={column} label="Status" />,
+        cell: ({ getValue }) => <StatusPill value={getValue()} />,
+      }),
+      helper.display({
+        id: "commission",
+        header: () => "Commission",
+        cell: ({ row }) => {
+          const r = row.original;
+          return r.payout_status === "paid" ? (
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald">
+              <CheckCircle2 size={12} /> ${r.payout_amount || COMMISSIONS[r.plan] || 3}
+            </span>
+          ) : r.status === "active" ? (
+            <button
+              onClick={() => confirmPayout(r.id, r.referred_email, r.plan)}
+              className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-black uppercase tracking-widest hover:bg-amber-500/20 transition-all"
+            >
+              Payer ${COMMISSIONS[r.plan] || 3.00}
+            </button>
+          ) : (
+            <span className="text-[9px] text-white/20">—</span>
+          );
+        },
+      }),
+      helper.display({
+        id: "award",
+        header: () => "Award",
+        cell: ({ row }) => {
+          const r = row.original;
+          return r.status === "active" ? (
+            <select
+              onChange={(e) => {
+                if (!e.target.value) return;
+                const tier = TIERS.find((t) => String(t.threshold) === e.target.value);
+                if (tier) giveTierReward(r.id, tier.reward, tier.threshold, r.referred_email);
+                e.target.value = "";
+              }}
+              className="bg-black/50 border border-white/10 px-2 py-1 text-[9px] font-black uppercase text-purple-300 outline-none rounded cursor-pointer hover:border-purple-400/40 transition-colors"
+            >
+              <option value="">Badge</option>
+              {TIERS.map((t) => <option key={t.threshold} value={t.threshold}>{t.threshold} → {t.reward}</option>)}
+            </select>
+          ) : (
+            <span className="text-[9px] text-purple-300 font-black uppercase">{r.tier_reward ? <Award size={10} className="inline mr-1" /> : ""}{r.tier_reward || "—"}</span>
+          );
+        },
+      }),
+      helper.accessor((r) => r.created_at || "", {
+        id: "time",
+        header: ({ column }) => <SortableHeader column={column} label="Time" />,
+        cell: ({ getValue }) => (getValue() ? new Date(getValue()).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) : "—"),
+      }),
+      helper.display({
+        id: "actions",
+        header: () => "",
+        cell: () => <button className="p-2 text-white/10 group-hover:text-cyan transition-colors"><ChevronRight size={16} /></button>,
+      }),
+    ]);
+  })();
+
+  const table = useTable({ features, columns, data: filtered });
+
   const KPIS = [
     {
       key: "total",
@@ -357,73 +465,39 @@ const ReferralsPage = () => {
         </div>
 
         <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "oklch(1 0 0 / 7%)", background: "oklch(0.1 0.01 255 / 0.4)" }}>
-          <div className="overflow-x-auto">
-            <table className="table-tech w-full">
-              <thead>
-                <tr className="border-b border-white/5 bg-white/[0.02]">
-                  {["Parrain", "Filleul", "Plan", "Status", "Commission", "Award", "Time", ""].map((h) => (
-                    <th key={h} className="px-5 py-4 text-[9px] uppercase tracking-[0.25em] text-white/30 font-black">{h}</th>
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((group) => (
+                <TableRow key={group.id} className="border-b border-white/5 bg-white/[0.02]">
+                  {group.headers.map((header) => (
+                    <TableHead key={header.id} className="px-5 py-4 text-white/30">
+                      {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r) => (
-                  <tr key={r.id} className="group hover:bg-white/[0.01] transition-colors border-t border-white/5">
-                    <td className="px-5 py-4 min-w-[140px]">
-                      <p className="text-xs font-bold text-white font-mono truncate">{r.referrer_email || r.referrer_id?.slice(0, 14)}</p>
-                      <p className="text-[8px] text-white/20 font-mono mt-0.5">{r.referrer_id?.slice(0, 8)}</p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <p className="text-xs font-bold text-white/70 truncate">{r.referred_email || "N/A"}</p>
-                      <p className="text-[8px] text-white/20 mt-0.5">{r.referred_name || "—"}</p>
-                    </td>
-                    <td className="px-5 py-4"><PlanPill plan={r.plan} /></td>
-                    <td className="px-5 py-4"><StatusPill value={r.status} /></td>
-                    <td className="px-5 py-4">
-                      {r.payout_status === "paid" ? (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald">
-                          <CheckCircle2 size={12} /> ${r.payout_amount || COMMISSIONS[r.plan] || 3}
-                        </span>
-                      ) : r.status === "active" ? (
-                        <button
-                          onClick={() => confirmPayout(r.id, r.referred_email, r.plan)}
-                          className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-black uppercase tracking-widest hover:bg-amber-500/20 transition-all"
-                        >
-                          Payer ${COMMISSIONS[r.plan] || 3.00}
-                        </button>
-                      ) : (
-                        <span className="text-[9px] text-white/20">—</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4">
-                      {r.status === "active" ? (
-                        <select
-                          onChange={(e) => {
-                            if (!e.target.value) return;
-                            const tier = TIERS.find((t) => String(t.threshold) === e.target.value);
-                            if (tier) giveTierReward(r.id, tier.reward, tier.threshold, r.referred_email);
-                            e.target.value = "";
-                          }}
-                          className="bg-black/50 border border-white/10 px-2 py-1 text-[9px] font-black uppercase text-purple-300 outline-none rounded cursor-pointer hover:border-purple-400/40 transition-colors"
-                        >
-                          <option value="">Badge</option>
-                          {TIERS.map((t) => <option key={t.threshold} value={t.threshold}>{t.threshold} → {t.reward}</option>)}
-                        </select>
-                      ) : (
-                        <span className="text-[9px] text-purple-300 font-black uppercase">{r.tier_reward ? <Award size={10} className="inline mr-1" /> : ""}{r.tier_reward || "—"}</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-[10px] text-white/20 font-mono">
-                      {r.created_at ? new Date(r.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) : "—"}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <button className="p-2 text-white/10 group-hover:text-cyan transition-colors"><ChevronRight size={16} /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="px-5 py-12 text-center text-[10px] uppercase tracking-widest text-white/15">
+                    Aucun parrainage
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} className="group hover:bg-white/[0.01] transition-colors border-t border-white/5">
+                  {row.getAllCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className={`px-5 py-4${cell.column.id === "referrer" ? " min-w-[140px]" : ""}${cell.column.id === "time" ? " text-[10px] text-white/20 font-mono" : ""}${cell.column.id === "actions" ? " text-right" : ""}`}
+                    >
+                      <table.FlexRender cell={cell} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </Section>
 
