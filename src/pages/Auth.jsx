@@ -130,7 +130,7 @@ const Auth = () => {
           <div className="mb-8 flex flex-col items-center text-center">
             <div
               className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border"
-              style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
+              style={{ borderColor: "rgba(255,255,255,0.08)", background: "#000" }}
             >
               <img src="/logo.png" alt="RxFx" className="h-7 w-7 object-contain" />
             </div>
