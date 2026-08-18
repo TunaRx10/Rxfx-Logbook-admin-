@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRealtimeSubscription } from "../lib/supabase-realtime";
+import { useRealtimeSubscription } from "../lib/realtime";
 import {
   Landmark,
   Search, Download, Bitcoin
@@ -33,7 +33,7 @@ const EconomyPage = () => {
   return (
     <PageShell>
       <PageHeader
-        eyebrow="Economic Engine — Supabase"
+        eyebrow="Economic Engine — Google Sheets"
         title="Economic"
         highlight="Mainframe"
         subtitle="Platform ledger, transactions, gateway liquidity."

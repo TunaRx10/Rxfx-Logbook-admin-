@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { updateUserProfile, getPaymentConfig, getPayoutConfig, setPayoutConfig, listTable } from "../lib/supabase-admin";
+import { updateUserProfile, getPaymentConfig, getPayoutConfig, setPayoutConfig, listTable } from "../lib/data-admin";
 import { createSubyPayment, createSubyPayout, isSubyConfigured } from "../lib/suby-admin";
 import { getSubyCheckoutLink } from "../lib/suby-checkout-links";
 import { DataState } from "../components/ui/DataState";
@@ -53,8 +53,8 @@ const BillingPage = () => {
   const fetchSubscriptions = useCallback(async () => {
     setLoading(true);
     setDataState({ kind: "loading" });
-    // Two parallel calls — if either fails with the "Supabase not configured"
-    // precondition, we surface a clean empty state instead of an error toast.
+    // Two parallel calls — if either fails with a "backend not configured"
+    // error, we surface a clean empty state instead of an error toast.
     const result = await DataState.loadGuard(async () => {
       const [subsData, profilesData] = await Promise.all([
         listTable('subscriptions', 100),
@@ -71,8 +71,8 @@ const BillingPage = () => {
     if (result.state === "ok") {
       setSubscriptions(result.data);
       setDataState({ kind: "ok" });
-    } else if (result.state === "supabase-missing") {
-      setDataState({ kind: "supabase-missing" });
+    } else if (result.state === "backend-missing") {
+      setDataState({ kind: "backend-missing" });
     } else {
       toast.error("Failed to load subscriptions");
       setDataState({ kind: "error", message: result.message });
@@ -685,8 +685,8 @@ const BillingPage = () => {
                             <div className="skeleton-shimmer h-6 w-64 mx-auto mt-4" />
                          </td>
                        </tr>
-                     ) : dataState.kind === "supabase-missing" ? (
-                        <tr><td colSpan="6" className="py-12"><DataState.SupabaseMissing /></td></tr>
+                     ) : dataState.kind === "backend-missing" ? (
+                        <tr><td colSpan="6" className="py-12"><DataState.BackendMissing /></td></tr>
                      ) : dataState.kind === "error" ? (
                         <tr><td colSpan="6" className="py-12"><DataState.Error message={dataState.message} onRetry={fetchSubscriptions} /></td></tr>
                      ) : filteredSubscriptions.length === 0 ? (

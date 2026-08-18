@@ -12,7 +12,7 @@ import {
   listSupportTickets,
   updateSupportTicket,
   subscribeToSupportTickets,
-} from "../lib/supabase-admin";
+} from "../lib/data-admin";
 import { useAuth } from "../context/AuthContext";
 
 const SupportPage = () => {
@@ -40,10 +40,8 @@ const SupportPage = () => {
     }, 3000);
   }
 
-  // Tickets from Supabase **via Realtime** (canal postgres_changes) + polling
-  // fallback. Un INSERT/UPDATE/DELETE déclenche un refresh quasi-instantané ;
-  // en cas de WebSocket down ou page en arrière-plan, on refetch toutes les
-  // 30s pour rester synchro.
+  // Tickets via polling Google Sheets (30s) — les événements INSERT/UPDATE/
+  // DELETE sont détectés par diff entre deux polls (`subscribeToSupportTickets`).
   useEffect(() => {
     if (!currentUser) return; // pas de session → pas de subscription
 
@@ -83,7 +81,7 @@ const SupportPage = () => {
       .catch((err) => {
         if (err?.message?.includes("TABLE_MISSING")) {
           setError(
-            "La table support_tickets n'existe pas dans Supabase. Applique la migration SQL : Dashboard Supabase → SQL Editor → colle le contenu de rxfx-logbook-admin/migrations/002_support_tickets.sql."
+            "La feuille support_tickets n'existe pas dans le spreadsheet. Exécutez setup() dans l'éditeur Apps Script pour créer toutes les feuilles."
           );
         } else {
           setError(err?.message || "Erreur de chargement");

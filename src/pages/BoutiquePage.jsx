@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-// Supabase as primary storage (shop_products + shop_orders tables).
+// Google Sheets as primary storage (shop_products + shop_orders tables).
 // Payment-link creation via Suby.fi.
 import { createSubyPaymentLink, isSubyConfigured } from "../lib/suby-admin";
-import { listTable, insertRow, updateRow, deleteRow } from "../lib/supabase-admin";
+import { listTable, insertRow, updateRow, deleteRow } from "../lib/data-admin";
 import { generateProduct, isChatReady } from "../lib/admin-ai";
 import { 
   ShoppingBag, Plus, Search, Filter, 
@@ -63,7 +63,7 @@ const BoutiquePage = () => {
         listTable("shop_products", 100),
         listTable("shop_orders", 50),
       ]);
-      // Normalize Supabase columns → UI fields
+      // Normalize Sheets columns → UI fields
       const normalized = (Array.isArray(products) ? products : []).map((p) => ({
         ...p,
         price: p.price_suby || 0,
@@ -994,8 +994,8 @@ async function postSubyPaymentLink(item, finalPrice, overridePrice) {
                <RefreshCw size={20} />
             </div>
             <div>
-               <h3 className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-widest font-equinox">Supabase Market Core</h3>
-               <p className="text-[9px] sm:text-[10px] text-white/25 font-medium uppercase tracking-[0.15em] sm:tracking-[0.2em] mt-1 sm:mt-2">Supabase PostgreSQL — shop_products & shop_orders en temps réel.</p>
+               <h3 className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-widest font-equinox">Market Core</h3>
+               <p className="text-[9px] sm:text-[10px] text-white/25 font-medium uppercase tracking-[0.15em] sm:tracking-[0.2em] mt-1 sm:mt-2">Google Sheets — shop_products & shop_orders (polling).</p>
             </div>
          </div>
          <div className="flex items-center space-x-3 sm:space-x-4 shrink-0">

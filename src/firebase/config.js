@@ -1,10 +1,9 @@
 /**
- * Firebase bridge — DISABLED (Supabase-only admin).
+ * Firebase bridge — DISABLED (Google Sheets via Apps Script uniquement).
  *
- * L'admin utilise Supabase comme backend unique via dev-supabase-direct
- * (local) ou supabase-admin.js (prod). Firebase n'est plus nécessaire.
- * Toutes les pages admin ont des gardes `if (!db)` et fonctionnent en
- * mode dégradé quand Firebase est absent.
+ * L'admin utilise Google Sheets (Apps Script) comme backend unique.
+ * Firebase n'est plus nécessaire — les pages ont des gardes `if (!db)`
+ * et fonctionnent en mode dégradé quand Firebase est absent.
  */
 
 // Tous les exports à null — les pages vérifient `if (!db)` avant usage.

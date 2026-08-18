@@ -14,7 +14,7 @@ import {
   unbanUser,
   deleteUser,
   updateUserProfile,
-} from "../lib/supabase-admin";
+} from "../lib/data-admin";
 import { useAuth } from "../context/AuthContext";
 import { useLang } from "../context/LangContext";
 import { PageShell, PageHeader } from "../components/ui/PagePrimitives";
@@ -198,7 +198,7 @@ const UsersPage = () => {
   return (
     <PageShell>
       <PageHeader
-        eyebrow="Supabase Registry"
+        eyebrow="User Registry — Google Sheets"
         title="User"
         highlight="Registry"
         subtitle="Browse, search, suspend, ban or delete every registered trader."

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { getAdminStats, getTradesSummary, getAllUsers, listTable, safeCallProxy } from "../lib/supabase-admin";
+import { getAdminStats, getTradesSummary, getAllUsers, listTable } from "../lib/data-admin";
 import {
   Activity, Users, DollarSign, TrendingUp, RefreshCw,
   Database, Zap, Server, ShieldCheck, AlertTriangle,
@@ -12,7 +12,7 @@ import { PageShell, PageHeader } from "../components/ui/PagePrimitives";
 import { MobileDashboardCards } from "../components/MobileDashboardCard";
 import { cn } from "../lib/utils";
 
-// Shared class for the retired Sync buttons (Apps Script bridges superseded by Suby/Supabase).
+// Shared class for the retired Sync buttons (Apps Script bridges superseded by Suby/Sheets).
 // Single source of truth so the disabled-hover override stays in sync if btn-tech evolves.
 const RETIRED_BTN_CLS =
   "btn-tech opacity-40 cursor-not-allowed disabled:hover:border-white/10 disabled:hover:text-white/40";
@@ -24,11 +24,6 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [identityNodes, setIdentityNodes] = useState([]);
-
-  // ── Migration state ──
-  const [migrating, setMigrating] = useState(false);
-  const [migrationResult, setMigrationResult] = useState(null);
-  const [migrationError, setMigrationError] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -57,7 +52,7 @@ const AdminDashboard = () => {
         console.warn("[Dashboard] Could not load identity nodes:", profilesErr);
       }
     } catch (err) {
-      console.error("[Dashboard] Supabase call failed:", err);
+      console.error("[Dashboard] Backend call failed:", err);
       const msg = err?.message || String(err);
       const code = err?.code || "unknown";
       if (code === "permission-denied" || msg.includes("permission-denied")) {
@@ -72,25 +67,6 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
-
-  // 🔧 DEV-ONLY: hand the user a "Appliquer migrations" button that
-  // applies pending SQL migrations against the live Supabase database
-  // via the server-side proxy.
-  const handleApplyMigrations = useCallback(async () => {
-    setMigrating(true);
-    setMigrationResult(null);
-    setMigrationError(null);
-    try {
-      const data = await safeCallProxy("applyMigrations", {});
-      setMigrationResult(data);
-      // Refresh dashboard data after successful migration
-      loadData();
-    } catch (err) {
-      setMigrationError(err.message || "Erreur réseau");
-    } finally {
-      setMigrating(false);
-    }
   }, [loadData]);
 
   const formatCurrency = (n) => {
@@ -138,8 +114,8 @@ const AdminDashboard = () => {
   ];
 
   const systemStatuses = [
-    { label: "Supabase Client", status: error ? "Error" : "Connected", color: error ? "text-rose" : "text-emerald" },
-    { label: "Supabase Auth", status: "Active", color: "text-emerald" },
+    { label: "Apps Script API", status: error ? "Error" : "Connected", color: error ? "text-rose" : "text-emerald" },
+    { label: "Auth (sessions)", status: "Active", color: "text-emerald" },
     { label: "Data Layer", status: (stats.totalUsers > 0 || tradesSum.totalTrades > 0) ? "Populated" : "Empty", color: (stats.totalUsers > 0 || tradesSum.totalTrades > 0) ? "text-emerald" : "text-white/30" },
     { label: "API Health", status: error ? "Offline" : "OK", color: error ? "text-rose" : "text-emerald" },
   ];
@@ -150,7 +126,7 @@ const AdminDashboard = () => {
     <PageShell>
       <PageHeader
         eyebrow="Admin Terminal"
-        title="Supabase"
+        title="Google Sheets"
         highlight="Mainframe"
         subtitle="Real-time system overview and controls."
         actions={
@@ -177,12 +153,12 @@ const AdminDashboard = () => {
             {/* ── Retired: legacy Apps Script bridges reached endpoints decommissioned
                 during the Suby migration. Honest UI = disabled + tooltip rather
                 than fire-and-forget at a 404 (the previous toast falsely showed
-                "Sync déclenché"). Both controls can be deleted once Supabase is
+                "Sync déclenché"). Both controls can be deleted once Sheets is
                 confirmed as the single source of truth. */}
             <button
               type="button"
               disabled
-              title="Bridge Apps Script retiré — la synchronisation Paiements passe désormais par Suby (webhooks → Supabase)."
+              title="Bridge Apps Script retiré — la synchronisation Paiements passe désormais par Suby (webhooks → feuille payment_logs)."
               className={RETIRED_BTN_CLS}
             >
               <RefreshCw size={14} /> Sync Paiements
@@ -190,90 +166,14 @@ const AdminDashboard = () => {
             <button
               type="button"
               disabled
-              title="Bridge Apps Script retiré — la base de données est directement servie par Supabase."
+              title="Bridge Apps Script retiré — la base de données est directement servie par Google Sheets."
               className={RETIRED_BTN_CLS}
             >
               <Database size={14} /> Sync Base
             </button>
-            {import.meta.env.DEV && (
-              <button
-                type="button"
-                onClick={handleApplyMigrations}
-                disabled={migrating}
-                className="btn-tech text-emerald border-emerald/20 hover:border-emerald/40"
-                title="Applique les migrations SQL pending en développement"
-              >
-                <Database size={14} className={migrating ? "animate-spin" : ""} />
-                {migrating ? "Migration..." : "Appliquer migrations"}
-              </button>
-            )}
           </>
         }
       />
-
-      {/* Migration Results Banner */}
-      {(migrationResult || migrationError) && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={cn(
-            "flex items-start gap-3 px-5 py-4 mb-8 rounded-xl border",
-            migrationError ? "border-rose/20 bg-rose/5" : "border-emerald/20 bg-emerald/5"
-          )}
-        >
-          {migrationError ? (
-            <AlertTriangle size={16} className="text-rose shrink-0 mt-0.5" />
-          ) : (
-            <Database size={16} className="text-emerald shrink-0 mt-0.5" />
-          )}
-          <div className="flex-1 min-w-0">
-            <p className={cn(
-              "text-[10px] font-black uppercase tracking-widest",
-              migrationError ? "text-rose/60" : "text-emerald/60"
-            )}>
-              {migrationError ? "Erreur migration" : "Résultat des migrations"}
-            </p>
-            {migrationError && (
-              <p className="text-xs text-rose/40 mt-1">{migrationError}</p>
-            )}
-            {migrationResult && (
-              <>
-                <p className="text-xs text-emerald/60 mt-1">
-                  {migrationResult.applied ?? 0} appliquées, {migrationResult.skipped ?? 0} ignorées sur {migrationResult.total ?? 0} fichiers.
-                </p>
-                {migrationResult.message && (
-                  <p className="text-xs text-white/30 mt-1">{migrationResult.message}</p>
-                )}
-                {migrationResult.files && migrationResult.files.length > 0 && (
-                  <div className="mt-2 max-h-32 overflow-y-auto space-y-0.5">
-                    {migrationResult.files.map((f, i) => (
-                      <div key={i} className="flex items-center gap-2 text-[9px]">
-                        <span className={cn(
-                          "shrink-0 h-1.5 w-1.5 rounded-full",
-                          f.status === "applied" || f.status === "already_applied" ? "bg-emerald" : "bg-rose"
-                        )} />
-                        <span className="text-white/30 font-mono truncate">{f.file}</span>
-                        <span className={cn(
-                          "shrink-0 font-bold uppercase",
-                          f.status === "applied" ? "text-emerald/50" : f.status === "already_applied" ? "text-amber/50" : "text-rose/50"
-                        )}>
-                          {f.status === "applied" ? "✓" : f.status === "already_applied" ? "déjà fait" : f.error?.slice(0, 40) || "✗"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-          <button
-            onClick={() => { setMigrationResult(null); setMigrationError(null); }}
-            className="shrink-0 text-white/20 hover:text-white/50 transition text-xs"
-          >
-            ✕
-          </button>
-        </motion.div>
-      )}
 
       {/* Error Banner */}
       {error && (
@@ -346,7 +246,7 @@ const AdminDashboard = () => {
               accentColor: "text-amber-400",
               glowColor: "oklch(0.9 0.15 85 / 0.1)",
               leftStat: {
-                label: "Supabase",
+                label: "Sheets",
                 value: error ? "Offline" : "Connected",
                 trend: error ? { direction: "down", label: "Error" } : { direction: "up", label: "OK" },
               },

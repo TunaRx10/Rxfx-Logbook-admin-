@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Award, User, Mail, Shield, Zap } from "lucide-react";
-import { getAllUsersWithSubs } from "../lib/supabase-admin";
+import { getAllUsersWithSubs } from "../lib/data-admin";
 import { PageShell, PageHeader } from "../components/ui/PagePrimitives";
 import { DataState } from "../components/ui/DataState";
 
@@ -15,8 +15,8 @@ const IdentityPage = () => {
     if (result.state === "ok") {
       setUsers(result.data);
       setDataState({ kind: "ok" });
-    } else if (result.state === "supabase-missing") {
-      setDataState({ kind: "supabase-missing" });
+    } else if (result.state === "backend-missing") {
+      setDataState({ kind: "backend-missing" });
     } else {
       setDataState({ kind: "error", message: result.message });
     }
@@ -27,7 +27,7 @@ const IdentityPage = () => {
   return (
     <PageShell>
       <PageHeader
-        eyebrow="Identity Management — Supabase"
+        eyebrow="Identity Management — Google Sheets"
         title="User"
         highlight="Identities"
         subtitle="Browse every registered trader with their plan and subscription status."
@@ -36,8 +36,8 @@ const IdentityPage = () => {
       {dataState.kind === "loading" && (
         <DataState.Loading label="Chargement des identités…" rows={4} />
       )}
-      {dataState.kind === "supabase-missing" && (
-        <DataState.SupabaseMissing onGoToSettings={() => (window.location.href = "/settings")} />
+      {dataState.kind === "backend-missing" && (
+        <DataState.BackendMissing onGoToSettings={() => (window.location.href = "/settings")} />
       )}
       {dataState.kind === "error" && (
         <DataState.Error message={dataState.message} onRetry={load} />

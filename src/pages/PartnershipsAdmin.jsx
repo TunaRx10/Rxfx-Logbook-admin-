@@ -5,7 +5,7 @@ import {
   ExternalLink, Mail, MapPin, Building2,
   CheckCircle2, Clock, Info, AlertCircle,
 } from "lucide-react";
-import { listTable, updateRow, insertRow } from "../lib/supabase-admin";
+import { listTable, updateRow, insertRow } from "../lib/data-admin";
 import { PageShell, PageHeader } from "../components/ui/PagePrimitives";
 import { DataState } from "../components/ui/DataState";
 import { toast } from "sonner";
@@ -33,8 +33,8 @@ const PartnershipsAdmin = () => {
     if (result.state === "ok") {
       setApps(result.data);
       setState({ kind: "ok" });
-    } else if (result.state === "supabase-missing") {
-      setState({ kind: "supabase-missing" });
+    } else if (result.state === "backend-missing") {
+      setState({ kind: "backend-missing" });
     } else {
       setState({ kind: "error", message: result.message });
     }
@@ -111,8 +111,8 @@ const PartnershipsAdmin = () => {
       {state.kind === "loading" && (
         <DataState.Loading label="Chargement des candidatures…" rows={5} />
       )}
-      {state.kind === "supabase-missing" && (
-        <DataState.SupabaseMissing onGoToSettings={() => (window.location.href = "/settings")} />
+      {state.kind === "backend-missing" && (
+        <DataState.BackendMissing onGoToSettings={() => (window.location.href = "/settings")} />
       )}
       {state.kind === "error" && (
         <DataState.Error message={state.message} onRetry={fetchData} />

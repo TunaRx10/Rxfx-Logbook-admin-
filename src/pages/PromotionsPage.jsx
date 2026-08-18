@@ -8,7 +8,7 @@ import {
   createCampaignEvent,
   deleteCampaignEvent,
   toggleCampaignEventStatus,
-} from "../lib/supabase-admin";
+} from "../lib/data-admin";
 import { generateCampaign, isChatReady } from "../lib/admin-ai";
 
 const EVENT_TYPES = [
@@ -37,7 +37,7 @@ const PromotionsPage = () => {
     link: "",
   });
 
-  // 🔒 Routed through supabaseAdminProxy (Functions emulator → admin SDK
+  // 🔒 Routed through the Apps Script backend (data-admin.js)
   //   Firestore) instead of the direct client Firestore connection. The
   //   previous direct-Firestore path was broken whenever the Firestore
   //   emulator (:8080) was not running (which is the default in this dev

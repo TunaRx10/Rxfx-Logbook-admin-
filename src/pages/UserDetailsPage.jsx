@@ -10,7 +10,7 @@ import {
   getAllUsersWithSubs,
   suspendUser, reactivateUser, banUser, unbanUser,
   deleteUser, getUserModerationHistory,
-} from "../lib/supabase-admin";
+} from "../lib/data-admin";
 import { useAuth } from "../context/AuthContext";
 import { useLang } from "../context/LangContext";
 import PlanEditor from "../components/ui/PlanEditor";

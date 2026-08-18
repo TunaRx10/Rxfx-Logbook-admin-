@@ -9,7 +9,7 @@
  *    un utilisateur individuel.
  */
 
-import { getAdminStats, getTradesSummary, listCampaignEvents, listSupportTickets } from "../lib/supabase-admin";
+import { getAdminStats, getTradesSummary, listCampaignEvents, listSupportTickets } from "../lib/data-admin";
 
 /**
  * Construit le contexte administrateur pour Lia.

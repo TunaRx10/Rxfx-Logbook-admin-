@@ -12,12 +12,12 @@ import { DataState } from "../components/ui/DataState";
 import { PageShell, PageHeader } from "../components/ui/PagePrimitives";
 import {
   listTable,
-  deleteRow as deleteSupabaseRow,
-  updateRow as updateSupabaseRow,
+  deleteRow as deleteSheetRow,
+  updateRow as updateSheetRow,
   updateUserProfile,
   deleteUser,
   getAdminStats,
-} from "../lib/supabase-admin";
+} from "../lib/data-admin";
 
 const WorkspaceSyncPage = () => {
   const [syncing, setSyncing] = useState({ users: false, trades: false, analytics: false });
@@ -26,7 +26,7 @@ const WorkspaceSyncPage = () => {
   const [statsState, setStatsState] = useState({ kind: "loading" });
   const APPS_SCRIPT_URL = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL || "";
 
-  /* ── Data Browser state (tables Supabase) ── */
+  /* ── Data Browser state (tables Sheets) ── */
   const SECTIONS = ["profiles", "trades", "payments", "referrals", "subscriptions"];
   const [browserSection, setBrowserSection] = useState("profiles");
   const [browserData, setBrowserData] = useState([]);
@@ -34,7 +34,7 @@ const WorkspaceSyncPage = () => {
   const [editingRow, setEditingRow] = useState(null);
   const [editValues, setEditValues] = useState({});
 
-  // Load export queue (Supabase logs — Firestore removed)
+  // Load export queue (logs — polling Sheets)
   useEffect(() => {
     async function loadQueue() {
       try {
@@ -55,8 +55,8 @@ const WorkspaceSyncPage = () => {
     if (result.state === "ok") {
       setStats(result.data);
       setStatsState({ kind: "ok" });
-    } else if (result.state === "supabase-missing") {
-      setStatsState({ kind: "supabase-missing" });
+    } else if (result.state === "backend-missing") {
+      setStatsState({ kind: "backend-missing" });
     } else {
       setStatsState({ kind: "error", message: result.message });
     }
@@ -70,7 +70,7 @@ const WorkspaceSyncPage = () => {
     setSyncing((s) => ({ ...s, users: true }));
     try {
       const users = await listTable("profiles", 1000);
-      toast.success(`${(users || []).length} utilisateurs chargés depuis Supabase (profiles)`);
+      toast.success(`${(users || []).length} utilisateurs chargés depuis Google Sheets (profiles)`);
     } catch (error) {
       toast.error(`Erreur: ${error.message}`);
     } finally {
@@ -82,7 +82,7 @@ const WorkspaceSyncPage = () => {
     setSyncing((s) => ({ ...s, trades: true }));
     try {
       const trades = await listTable("trades", 1000);
-      toast.success(`${(trades || []).length} trades chargés depuis Supabase`);
+      toast.success(`${(trades || []).length} trades chargés depuis Google Sheets`);
     } catch (error) {
       toast.error(`Erreur: ${error.message}`);
     } finally {
@@ -94,7 +94,7 @@ const WorkspaceSyncPage = () => {
     setSyncing((s) => ({ ...s, analytics: true }));
     try {
       const logs = await listTable("logs", 200);
-      toast.success(`${(logs || []).length} entrées de logs chargées depuis Supabase`);
+      toast.success(`${(logs || []).length} entrées de logs chargées depuis Google Sheets`);
     } catch (error) {
       toast.error(`Erreur: ${error.message}`);
     } finally {
@@ -102,7 +102,7 @@ const WorkspaceSyncPage = () => {
     }
   };
 
-  /* ── Data Browser helpers (Supabase) ── */
+  /* ── Data Browser helpers (Sheets) ── */
   async function loadBrowserData() {
     setBrowserLoading(true);
     try {
@@ -129,14 +129,14 @@ const WorkspaceSyncPage = () => {
       delete supaFields.timestamp;
       delete supaFields.created_at;
 
-      if (!rowId) throw new Error("Ligne sans id — impossible de mettre à jour en Supabase");
+      if (!rowId) throw new Error("Ligne sans id — impossible de mettre à jour dans Sheets");
 
       // profiles → updateUserProfile (synchronise profiles + subscriptions)
       if (browserSection === "profiles") {
         await updateUserProfile(String(rowId), supaFields);
         toast.success("Profil mis à jour (profiles + subscriptions)");
       } else {
-        await updateSupabaseRow(browserSection, "id", String(rowId), supaFields);
+        await updateSheetRow(browserSection, "id", String(rowId), supaFields);
         toast.success(`Ligne ${rowIndex} mise à jour dans ${browserSection}`);
       }
 
@@ -160,9 +160,9 @@ const WorkspaceSyncPage = () => {
     try {
       if (browserSection === "profiles") {
         await deleteUser(String(rowId));
-        toast.success("Utilisateur supprimé de Supabase");
+        toast.success("Utilisateur supprimé de Google Sheets");
       } else {
-        await deleteSupabaseRow(browserSection, "id", String(rowId));
+        await deleteSheetRow(browserSection, "id", String(rowId));
         toast.success(`Ligne ${rowIndex} supprimée de ${browserSection}`);
       }
       loadBrowserData();
@@ -258,7 +258,7 @@ const WorkspaceSyncPage = () => {
         eyebrow="Google Workspace Synchronization"
         title="Data"
         highlight="Bridge"
-        subtitle="Google Apps Script integration hub — direct HTTP sync with bidirectional Supabase ↔ Sheets."
+        subtitle="Google Apps Script integration hub — Google Sheets est la source unique des données."
         actions={
           <div className="flex flex-wrap items-center gap-3">
             {statsBadge}
@@ -266,8 +266,8 @@ const WorkspaceSyncPage = () => {
         }
       />
 
-      {statsState.kind === "supabase-missing" && (
-        <div className="mb-8"><DataState.SupabaseMissing /></div>
+      {statsState.kind === "backend-missing" && (
+        <div className="mb-8"><DataState.BackendMissing /></div>
       )}
       {statsState.kind === "error" && (
         <div className="mb-8"><DataState.Error message={statsState.message} onRetry={loadStats} /></div>
@@ -621,7 +621,7 @@ const WorkspaceSyncPage = () => {
             {browserData.length} row{browserData.length !== 1 ? "s" : ""}
           </span>
           <span className="text-[8px] text-white/10 uppercase tracking-wider">
-            Bidirectional Sync — Supabase ↔ Sheets
+            Google Sheets — source unique
           </span>
         </div>
       </div>

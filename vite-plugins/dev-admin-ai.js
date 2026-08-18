@@ -31,11 +31,8 @@ function getSupabaseConfig() {
   }
   if (!_supabaseConfigPromise) {
     _supabaseConfigPromise = (async () => {
-      const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
-      const key =
-        process.env.SUPABASE_SERVICE_ROLE_KEY ||
-        process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
-        "";
+      const url = process.env.SUPABASE_URL || "";
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
       if (!url || !key) return {};
       try {
         const res = await fetch(
@@ -71,23 +68,19 @@ async function getConfigValue(key) {
 async function getGeminiKey() {
   const fromDb = await getConfigValue("ai_gemini_key");
   if (fromDb) return fromDb;
-  return process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
+  return process.env.GEMINI_API_KEY || "";
 }
 
 async function getMistralKey() {
   const fromDb = await getConfigValue("ai_mistral_key");
   if (fromDb) return fromDb;
-  return process.env.MISTRAL_API_KEY || process.env.VITE_MISTRAL_API_KEY || "";
+  return process.env.MISTRAL_API_KEY || "";
 }
 
 async function getOpenRouterKey() {
   const fromDb = await getConfigValue("ai_openrouter_key");
   if (fromDb) return fromDb;
-  return (
-    process.env.OPENROUTER_API_KEY ||
-    process.env.VITE_OPENROUTER_API_KEY ||
-    ""
-  );
+  return process.env.OPENROUTER_API_KEY || "";
 }
 
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";

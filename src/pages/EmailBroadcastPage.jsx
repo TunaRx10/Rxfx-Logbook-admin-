@@ -1,17 +1,26 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import { listTable, insertRow } from "../lib/supabase-admin";
+import { listTable, insertRow } from "../lib/data-admin";
 import {
   Send, Mail, Users, Search, CheckCircle2, Clock,
   XCircle, RefreshCw, FileText,
-  Inbox, Sparkles
+  Inbox, Sparkles, PenLine, RotateCcw, FlaskConical
 } from "lucide-react";
 import { cn } from "../lib/utils";
-import { getAllUsersWithSubs } from "../lib/supabase-admin";
+import { getAllUsersWithSubs } from "../lib/data-admin";
 import { DataState } from "../components/ui/DataState";
 import { PageShell, PageHeader } from "../components/ui/PagePrimitives";
 import { generateEmail, isChatReady } from "../lib/admin-ai";
 import { sendEmail, sendBulkEmail } from "../lib/google-api";
+import {
+  EMAIL_TEMPLATES,
+  listEmailTemplates,
+  saveEmailTemplate,
+  resetEmailTemplate,
+  sendTemplateTestEmail,
+  renderTemplateText,
+  sampleDataFor,
+} from "../lib/email-templates";
 
 const EmailBroadcastPage = () => {
   const [users, setUsers] = useState([]);
@@ -25,6 +34,17 @@ const EmailBroadcastPage = () => {
   const [activeTab, setActiveTab] = useState("compose");
   const [dataState, setDataState] = useState({ kind: "loading" });
 
+  // ── Templates ──
+  const [customTemplates, setCustomTemplates] = useState([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
+  const [templatesError, setTemplatesError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editorSubject, setEditorSubject] = useState("");
+  const [editorBody, setEditorBody] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [testingTemplate, setTestingTemplate] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+
   const BASE_URL = typeof window !== "undefined" ? window.location.origin : "";
   const loadQueueRef = useRef(null);
 
@@ -34,8 +54,8 @@ const EmailBroadcastPage = () => {
     if (result.state === "ok") {
       setUsers(result.data);
       setDataState({ kind: "ok" });
-    } else if (result.state === "supabase-missing") {
-      setDataState({ kind: "supabase-missing" });
+    } else if (result.state === "backend-missing") {
+      setDataState({ kind: "backend-missing" });
     } else {
       setDataState({ kind: "error", message: result.message });
     }
@@ -45,7 +65,7 @@ const EmailBroadcastPage = () => {
     loadUsers();
   }, [loadUsers]);
 
-  // Load mail queue (Supabase polling)
+  // Load mail queue (polling Sheets)
   useEffect(() => {
     async function loadQueue() {
       try {
@@ -60,6 +80,102 @@ const EmailBroadcastPage = () => {
     const t = setInterval(loadQueue, 10000);
     return () => clearInterval(t);
   }, []);
+
+  // ── Templates: chargement + actions ──
+  const loadTemplates = useCallback(async () => {
+    setTemplatesLoading(true);
+    setTemplatesError("");
+    try {
+      const rows = await listEmailTemplates();
+      setCustomTemplates(rows || []);
+    } catch (err) {
+      setTemplatesError(err.message || "Erreur de chargement des templates");
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadTemplates();
+  }, [loadTemplates]);
+
+  const customTemplateById = (id) => customTemplates.find((t) => t.id === id);
+
+  const openEditor = (id) => {
+    const custom = customTemplateById(id);
+    setEditingId(id);
+    setEditorSubject(custom?.subject || "");
+    setEditorBody(custom?.body_html || "");
+  };
+
+  const closeEditor = () => {
+    setEditingId(null);
+    setEditorSubject("");
+    setEditorBody("");
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!editingId) return;
+    setSavingTemplate(true);
+    try {
+      await saveEmailTemplate(editingId, editorSubject, editorBody);
+      toast.success("Template enregistré ✅");
+      await loadTemplates();
+    } catch (err) {
+      toast.error(`Erreur: ${err.message}`);
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleResetTemplate = async () => {
+    if (!editingId) return;
+    if (!confirm(`Réinitialiser le template "${EMAIL_TEMPLATES.find((t) => t.id === editingId)?.label}" aux valeurs par défaut ?`)) return;
+    setSavingTemplate(true);
+    try {
+      await resetEmailTemplate(editingId);
+      toast.success("Template réinitialisé — le défaut sera utilisé.");
+      setEditorSubject("");
+      setEditorBody("");
+      await loadTemplates();
+    } catch (err) {
+      toast.error(`Erreur: ${err.message}`);
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleTestTemplate = async () => {
+    if (!editingId) return;
+    const to = testEmail.trim();
+    if (!to) {
+      toast.error("Entrez une adresse email de test.");
+      return;
+    }
+    if (!editorSubject.trim() || !editorBody.trim()) {
+      toast.error("Sujet et contenu HTML requis.");
+      return;
+    }
+    setTestingTemplate(true);
+    try {
+      const sample = sampleDataFor(editingId);
+      await sendTemplateTestEmail(to, renderTemplateText(editorSubject, sample), renderTemplateText(editorBody, sample));
+      toast.success(`Email de test envoyé à ${to}`);
+    } catch (err) {
+      toast.error(`Erreur: ${err.message}`);
+    } finally {
+      setTestingTemplate(false);
+    }
+  };
+
+  const applyToCompose = () => {
+    if (!editingId) return;
+    setSubject(renderTemplateText(editorSubject, sampleDataFor(editingId)));
+    setHtmlBody(renderTemplateText(editorBody, sampleDataFor(editingId)));
+    setTemplate("custom");
+    setActiveTab("compose");
+    toast.success("Template chargé dans le compose.");
+  };
 
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
@@ -181,7 +297,7 @@ const EmailBroadcastPage = () => {
       // 1) Envoi immédiat via Apps Script (Gmail)
       const bulk = await sendBulkEmail(recipients);
 
-      // 2) Trace dans Supabase mail_queue (visible par l'admin)
+      // 2) Trace dans la feuille mail_queue (visible par l'admin)
       for (const r of recipients) {
         try {
           await insertRow("mail_queue", {
@@ -267,7 +383,7 @@ const EmailBroadcastPage = () => {
         eyebrow="Email Operations Center"
         title="Email"
         highlight="Broadcast"
-        subtitle="Supabase users + Gmail-powered messaging via gws-gmail-send."
+        subtitle="Users Sheets + Gmail-powered messaging via Apps Script."
         actions={queueBadge}
       />
 
@@ -275,6 +391,7 @@ const EmailBroadcastPage = () => {
       <div className="flex gap-4 mb-8 border-b border-white/5">
         {[
           { key: "compose", label: "Compose", icon: FileText },
+          { key: "templates", label: "Templates", icon: PenLine },
           { key: "queue", label: "Mail Queue", icon: Clock },
           { key: "users", label: "Recipients", icon: Users },
         ].map((tab) => (
@@ -378,7 +495,7 @@ const EmailBroadcastPage = () => {
 
           <div className="bento-card !p-6 space-y-4 max-h-[600px] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-black uppercase tracking-widest text-white/40">Recipients (Supabase)</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-white/40">Recipients (Sheets)</h3>
               <div className="flex gap-2">
                 <button onClick={selectAll} className="text-[9px] text-cyan uppercase tracking-widest hover:underline">All</button>
                 <button onClick={clearSelection} className="text-[9px] text-white/25 uppercase tracking-widest hover:underline">Clear</button>
@@ -398,8 +515,8 @@ const EmailBroadcastPage = () => {
               {dataState.kind === "loading" && (
                 <p className="text-[9px] uppercase tracking-widest text-white/20 animate-pulse py-4 text-center">Loading recipients…</p>
               )}
-              {dataState.kind === "supabase-missing" && (
-                <div className="py-6"><DataState.SupabaseMissing /></div>
+              {dataState.kind === "backend-missing" && (
+                <div className="py-6"><DataState.BackendMissing /></div>
               )}
               {dataState.kind === "error" && (
                 <div className="py-6"><DataState.Error message={dataState.message} onRetry={loadUsers} /></div>
@@ -440,6 +557,203 @@ const EmailBroadcastPage = () => {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "templates" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Liste des templates */}
+          <div className="lg:col-span-1 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase tracking-widest text-white/40">
+                Templates automatiques
+              </h3>
+              <button
+                onClick={loadTemplates}
+                className="text-[9px] text-cyan uppercase tracking-widest hover:underline flex items-center gap-1"
+              >
+                <RefreshCw size={11} /> Reload
+              </button>
+            </div>
+
+            {templatesLoading && (
+              <p className="text-[9px] uppercase tracking-widest text-white/20 animate-pulse py-4 text-center">
+                Chargement des templates…
+              </p>
+            )}
+            {templatesError && (
+              <div className="bento-card !p-4">
+                <p className="text-[10px] text-red-500">{templatesError}</p>
+                <button
+                  onClick={loadTemplates}
+                  className="mt-2 text-[9px] text-cyan uppercase tracking-widest hover:underline"
+                >
+                  Réessayer
+                </button>
+              </div>
+            )}
+
+            {!templatesLoading && !templatesError && EMAIL_TEMPLATES.map((tpl) => {
+              const custom = customTemplateById(tpl.id);
+              const active = editingId === tpl.id;
+              return (
+                <button
+                  key={tpl.id}
+                  onClick={() => openEditor(tpl.id)}
+                  className={cn(
+                    "w-full text-left p-4 border transition-all bento-card !p-4",
+                    active
+                      ? "border-cyan/40 bg-cyan/[0.04]"
+                      : "border-white/5 hover:border-cyan/20"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/70">
+                      {tpl.label}
+                    </span>
+                    <span
+                      className={cn(
+                        "px-1.5 py-0.5 text-[7px] font-black uppercase tracking-widest",
+                        custom
+                          ? "bg-cyan/15 text-cyan"
+                          : "bg-white/5 text-white/30"
+                      )}
+                    >
+                      {custom ? "Personnalisé" : "Défaut"}
+                    </span>
+                  </div>
+                  <p className="text-[9px] text-white/25 mb-2">{tpl.description}</p>
+                  <p className="text-[10px] text-white/40 truncate">
+                    {custom?.subject || "—"}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Éditeur */}
+          <div className="lg:col-span-2">
+            {!editingId ? (
+              <div className="bento-card !p-10 text-center">
+                <PenLine size={28} className="mx-auto text-white/15 mb-3" />
+                <p className="text-[10px] uppercase tracking-widest text-white/25">
+                  Sélectionnez un template pour le modifier
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-cyan">
+                    {EMAIL_TEMPLATES.find((t) => t.id === editingId)?.label}
+                  </h3>
+                  <button
+                    onClick={closeEditor}
+                    className="text-[9px] text-white/30 uppercase tracking-widest hover:text-white"
+                  >
+                    Fermer ✕
+                  </button>
+                </div>
+
+                {/* Placeholders */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[9px] uppercase tracking-widest text-white/25">Placeholders:</span>
+                  {(EMAIL_TEMPLATES.find((t) => t.id === editingId)?.placeholders || []).map((p) => (
+                    <code
+                      key={p}
+                      className="px-1.5 py-0.5 text-[9px] font-mono bg-black/60 border border-white/10 text-cyan"
+                    >
+                      {"{{"}{p}{"}}"}
+                    </code>
+                  ))}
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2 block">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    value={editorSubject}
+                    onChange={(e) => setEditorSubject(e.target.value)}
+                    placeholder="Email subject line..."
+                    className="w-full bg-black/60 border border-white/10 px-4 py-3 text-sm focus:border-cyan outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2 block">
+                    HTML Body
+                  </label>
+                  <textarea
+                    value={editorBody}
+                    onChange={(e) => setEditorBody(e.target.value)}
+                    rows={14}
+                    placeholder="<h1>Your HTML email...</h1>"
+                    className="w-full bg-black/60 border border-white/10 px-4 py-3 text-xs font-mono focus:border-cyan outline-none transition-all resize-y"
+                  />
+                </div>
+
+                {/* Prévisualisation */}
+                {editorBody.trim() && (
+                  <div className="bento-card !p-4">
+                    <p className="text-[9px] uppercase tracking-widest text-white/25 mb-2">
+                      Aperçu (avec données d'exemple)
+                    </p>
+                    <div
+                      className="max-h-56 overflow-y-auto border border-white/5 rounded-lg text-xs text-white/70"
+                      dangerouslySetInnerHTML={{ __html: renderTemplateText(editorBody, sampleDataFor(editingId)) }}
+                    />
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleSaveTemplate}
+                    disabled={savingTemplate}
+                    className="flex items-center gap-2 bg-cyan text-black px-6 py-2.5 font-black text-xs uppercase tracking-widest hover:bg-cyan transition-all disabled:opacity-30"
+                  >
+                    {savingTemplate ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                    {savingTemplate ? "Enregistrement..." : "Enregistrer"}
+                  </button>
+                  <button
+                    onClick={handleResetTemplate}
+                    disabled={savingTemplate || !customTemplateById(editingId)}
+                    className="flex items-center gap-2 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest border border-white/10 text-white/40 hover:border-red-500/40 hover:text-red-500 transition-all disabled:opacity-30"
+                  >
+                    <RotateCcw size={13} />
+                    Réinitialiser
+                  </button>
+                  <button
+                    onClick={applyToCompose}
+                    className="flex items-center gap-2 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest border border-cyan/30 text-cyan hover:bg-cyan/10 transition-all"
+                  >
+                    <FileText size={13} />
+                    Utiliser dans Compose
+                  </button>
+                </div>
+
+                {/* Test */}
+                <div className="flex flex-wrap items-center gap-2 border-t border-white/5 pt-4">
+                  <input
+                    type="email"
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    placeholder="email-de-test@exemple.com"
+                    className="flex-1 min-w-[220px] bg-black/60 border border-white/10 px-3 py-2 text-xs focus:border-cyan outline-none transition-all"
+                  />
+                  <button
+                    onClick={handleTestTemplate}
+                    disabled={testingTemplate || savingTemplate}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-cyan/10 border border-cyan/30 text-cyan text-[10px] font-black uppercase tracking-widest hover:bg-cyan/20 transition-all disabled:opacity-30"
+                  >
+                    {testingTemplate ? <RefreshCw size={13} className="animate-spin" /> : <FlaskConical size={13} />}
+                    {testingTemplate ? "Envoi..." : "Envoyer un test"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -492,8 +806,8 @@ const EmailBroadcastPage = () => {
         <div className="bento-card !p-0 overflow-hidden">
           {dataState.kind === "loading" ? (
             <div className="py-20"><DataState.Loading label="Chargement des destinataires…" rows={3} /></div>
-          ) : dataState.kind === "supabase-missing" ? (
-            <div className="py-12"><DataState.SupabaseMissing /></div>
+          ) : dataState.kind === "backend-missing" ? (
+            <div className="py-12"><DataState.BackendMissing /></div>
           ) : dataState.kind === "error" ? (
             <div className="py-12"><DataState.Error message={dataState.message} onRetry={loadUsers} /></div>
           ) : filteredUsers.length === 0 ? (

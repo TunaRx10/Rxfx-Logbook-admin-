@@ -6,12 +6,19 @@
 // ───────────────────────────────────────────────────────────────────────
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { requireAdmin } from "../_lib/admin-auth";
 
 type Body = { prompt: string };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+
+  const denied = await requireAdmin(req);
+  if (denied) {
+    res.status(denied.status).json({ error: denied.message });
     return;
   }
 
@@ -28,14 +35,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  if (!(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY)) {
+  if (!(process.env.GEMINI_API_KEY)) {
     res.status(503).json({
       error: "Image generation unavailable — GEMINI_API_KEY not configured",
     });
     return;
   }
 
-  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   const url =
     "https://generativelanguage.googleapis.com/v1beta/models/" +
     encodeURIComponent("gemini-2.0-flash-exp") +

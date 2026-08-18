@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { envVar } from "../lib/env";
 import { useAuth } from "../context/AuthContext";
-import { Mail, Lock, ArrowRight, Eye, EyeOff, Shield } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff, Shield, User, Calendar, Globe } from "lucide-react";
 
 // 🔒 SECURITY: No fallback. If VITE_SUPREME_ADMIN_EMAIL is missing the
 //     signup path is completely disabled at runtime (see canSignup below).
@@ -17,11 +16,15 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [birthday, setBirthday] = useState("");
+  const [country, setCountry] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState(null);
   const navigate = useNavigate();
-  const { currentUser, isAdmin } = useAuth();
+  const { currentUser, isAdmin, login, register, logout } = useAuth();
 
   // 🔒 SECURITY: Signup flow requires a configured supreme admin email.
   //     If the env var is empty we hide the signup tab entirely so an
@@ -49,18 +52,24 @@ const Auth = () => {
     }
 
     try {
-      console.log("[Auth] Attempting login with:", email);
+      console.log("[Auth] Attempting", isLogin ? "login" : "signup", "with:", email);
       if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        console.log("[Auth] Supabase response:", { data, error });
-        if (error) throw error;
-        
+        await login(email, password);
         toast.info("Connexion réussie, validation des droits...");
       } else {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        console.log("[Auth] Supabase signup response:", { data, error });
-        if (error) throw error;
-        toast.success("Inscription réussie. Vérifiez votre email.");
+        await register(
+          {
+            email,
+            password,
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            birthday: birthday,
+            country: country.trim(),
+          },
+          // Le compte suprême est promu en `admin` après l'inscription.
+          { promoteAdmin: true },
+        );
+        toast.success("Inscription réussie.");
       }
     } catch (error) {
       console.error("[Auth] Login error:", error);
@@ -186,12 +195,78 @@ const Auth = () => {
               />
             </div>
 
+            {/* Prénom + Nom (inscription uniquement — requis par le script) */}
+            {!isLogin && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.2)" }} />
+                  <input
+                    type="text"
+                    required
+                    minLength={2}
+                    maxLength={100}
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Prénom"
+                    className={inputClass}
+                    style={{ background: "transparent", color: "#f5f5f5" }}
+                  />
+                </div>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.2)" }} />
+                  <input
+                    type="text"
+                    required
+                    minLength={2}
+                    maxLength={100}
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Nom"
+                    className={inputClass}
+                    style={{ background: "transparent", color: "#f5f5f5" }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Date de naissance + Pays (inscription uniquement — requis par le script) */}
+            {!isLogin && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="relative">
+                  <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.2)" }} />
+                  <input
+                    type="date"
+                    required
+                    value={birthday}
+                    onChange={(e) => setBirthday(e.target.value)}
+                    className={inputClass}
+                    style={{ background: "transparent", color: "#f5f5f5" }}
+                  />
+                </div>
+                <div className="relative">
+                  <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.2)" }} />
+                  <input
+                    type="text"
+                    required
+                    minLength={2}
+                    maxLength={100}
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="Pays"
+                    className={inputClass}
+                    style={{ background: "transparent", color: "#f5f5f5" }}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Password */}
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.2)" }} />
               <input
                 type={showPassword ? "text" : "password"}
                 required
+                minLength={12}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
@@ -211,6 +286,12 @@ const Auth = () => {
                 {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
               </button>
             </div>
+
+            {!isLogin && (
+              <p className="text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
+                12 caractères minimum, avec majuscule, minuscule, chiffre et caractère spécial.
+              </p>
+            )}
 
             {/* Submit */}
             <button
@@ -246,7 +327,8 @@ const Auth = () => {
                   Connecté en tant que {currentUser.email}, mais ce compte n'a pas les droits d'accès.
                 </p>
                 <button 
-                  onClick={() => supabase.auth.signOut()}
+                  type="button"
+                  onClick={logout}
                   className="mt-2 text-[9px] uppercase tracking-widest text-white/60 hover:text-white underline"
                 >
                   Changer de compte

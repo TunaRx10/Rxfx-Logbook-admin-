@@ -6,7 +6,7 @@ import {
 import { toast } from "sonner";
 import { PageShell, PageHeader } from "../components/ui/PagePrimitives";
 import { DataState } from "../components/ui/DataState";
-import { listTable, insertRow, deleteRow } from "../lib/supabase-admin";
+import { listTable, insertRow, deleteRow } from "../lib/data-admin";
 
 const CalendarPage = () => {
   const [events, setEvents] = useState([]);
@@ -19,11 +19,11 @@ const CalendarPage = () => {
 
   // `available` is set true if we can reach the campaign_events table.
   // It used to be hardcoded `true` which meant the "Apps Script non déployé"
-  // banner was unreachable AND we never knew if Supabase was down. Now we
+  // banner was unreachable AND we never knew if the backend was down. Now we
   // detect by capturing the first fetch's outcome.
   const [available, setAvailable] = useState(true);
 
-  // Normalize Supabase calendar rows → UI fields.
+  // Normalize calendar rows → UI fields.
   // ⚠️ Le schéma principal (001) n'avait pas `start_date`/`end_date`,
   // CalendarPage s'appuyait dessus et finissait sur "Invalid Date" dans
   // toutes les lignes. Maintenant on TOLÈRE les 3 cas :
@@ -48,7 +48,7 @@ const CalendarPage = () => {
       .filter(Boolean);
   }
 
-  // Load calendar events (Supabase polling).
+  // Load calendar events (polling Sheets).
   // `available` flips to true only after the FIRST successful fetch ; failed
   // fetches set it false (banner stays visible until reload).
   useEffect(() => {
@@ -74,7 +74,7 @@ const CalendarPage = () => {
     return () => { cancelled = true; clearInterval(t); };
   }, []);
 
-  // Mail queue (Supabase polling). La table `mail_queue` peut ne pas
+  // Mail queue (polling Sheets). La table `mail_queue` peut ne pas
   // exister dans le schéma : on capture l'erreur silencieusement et la
   // file d'attente reste vide sans spammer la console toutes les 10s.
   useEffect(() => {
@@ -130,7 +130,7 @@ const CalendarPage = () => {
   async function handleSyncSubscriptions() {
     setSyncingSubs(true);
     try {
-      // Sync tous les abonnements actifs vers le calendrier (Supabase)
+      // Sync tous les abonnements actifs vers le calendrier (Sheets)
       const subs = await listTable("subscriptions", 500);
       const profiles = await listTable("profiles", 500);
       const emailById = {};

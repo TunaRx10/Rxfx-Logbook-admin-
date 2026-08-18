@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { listTable, deleteRow, updateRow } from "./supabase-admin";
+import { listTable, deleteRow, updateRow } from "./data-admin";
 
 /**
- * Realtime hook using the secure admin proxy.
- * Because the Supabase service key is no longer exposed in the frontend,
- * we cannot open a Postgres changes channel directly. Instead we fetch the
- * table initially and then poll every few seconds.
+ * Realtime hook — polling Google Sheets via `data-admin` (qui route vers
+ * Apps Script). On charge la table puis on rafraîchit toutes les 30s, en
+ * mettant le polling en pause quand l'onglet est masqué.
  */
 export function useRealtimeSubscription(table, opts = {}) {
   const [data, setData] = useState([]);
@@ -54,14 +53,8 @@ export function useRealtimeSubscription(table, opts = {}) {
 }
 
 /**
- * Supabase CRUD helpers — now backed by the secure Cloud Function proxy.
+ * CRUD helpers — routent vers Apps Script via `data-admin`.
  */
-
-export async function insertOne(table, data) {
-  // Proxy currently exposes listTable/deleteRow/updateRow; insert is done via updateRow semantics
-  // or by extending the proxy. For now, throw a clear error directing to the proxy.
-  throw new Error("insertOne is disabled in the frontend; use a Cloud Function proxy action instead.");
-}
 
 export async function updateOne(table, id, updates) {
   return updateRow(table, "id", id, { ...updates, updated_at: new Date().toISOString() });
@@ -69,12 +62,4 @@ export async function updateOne(table, id, updates) {
 
 export async function deleteOne(table, id) {
   return deleteRow(table, "id", id);
-}
-
-/**
- * Mail queue helper — disabled client-side; emails must be queued server-side.
- */
-export async function queueEmail({ to, subject, html, userId }) {
-  console.warn("queueEmail is disabled in the frontend; use the queueEmail Cloud Function instead.", { to, userId });
-  throw new Error("queueEmail is disabled in the frontend; use the Cloud Function queueEmail instead.");
 }

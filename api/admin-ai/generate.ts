@@ -5,11 +5,12 @@
 // ───────────────────────────────────────────────────────────────────────
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { requireAdmin } from "../_lib/admin-auth";
 
 type Body = { prompt: string; systemPrompt?: string; maxTokens?: number };
 
 async function tryGemini(prompt: string, sys: string, maxTokens: number) {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
   const url =
     "https://generativelanguage.googleapis.com/v1beta/models/" +
@@ -31,7 +32,7 @@ async function tryGemini(prompt: string, sys: string, maxTokens: number) {
 }
 
 async function tryOpenRouter(prompt: string, sys: string, maxTokens: number) {
-  const apiKey = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return null;
   // OpenRouter's "openrouter/free" is an auto-router that picks a currently-
   // available free model — robust against per-model deprecation.
@@ -75,6 +76,12 @@ async function tryOpenRouter(prompt: string, sys: string, maxTokens: number) {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+
+  const denied = await requireAdmin(req);
+  if (denied) {
+    res.status(denied.status).json({ error: denied.message });
     return;
   }
 

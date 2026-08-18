@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { listReferrals, listPayoutRequests, updateReferral, updatePayoutRequest, insertRow } from "../lib/supabase-admin";
+import { listReferrals, listPayoutRequests, updateReferral, updatePayoutRequest, insertRow } from "../lib/data-admin";
 import {
   Gift, Users, TrendingUp, DollarSign, Clock, Wallet,
   Search, ExternalLink, CheckCircle2, ChevronRight,
@@ -68,7 +68,7 @@ const ReferralsPage = () => {
     return () => clearInterval(t);
   }, []);
 
-  /* ── Logging Helper (Supabase logs table) ── */
+  /* ── Logging Helper (logs table) ── */
   const logAction = async (action) => {
     const dateStr = new Date().toLocaleString('fr-FR', { hour12: false });
     const logMessage = `[${dateStr}] ${action}`;
@@ -112,9 +112,9 @@ const ReferralsPage = () => {
         payout_amount: r.payout_amount || 0,
         payout_status: r.payout_status || "unpaid",
       }));
-      // Les données sont déjà dans Supabase — export facultatif vers Sheets
-      await logAction(`Export de ${rows.length} parrainages (données Supabase)`);
-      toast.success(`${rows.length} parrainages disponibles (stockés dans Supabase)`);
+      // Les données sont déjà dans la feuille referrals — export facultatif
+      await logAction(`Export de ${rows.length} parrainages (données Sheets)`);
+      toast.success(`${rows.length} parrainages disponibles (stockés dans Sheets)`);
     } catch (err) {
       toast.error("Erreur export");
     }

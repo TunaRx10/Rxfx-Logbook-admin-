@@ -6,7 +6,7 @@ import {
   FileCheck, Star, User,
   ChevronRight
 } from "lucide-react";
-import { listTable, updateRow, insertRow, getAllUsers } from "../lib/supabase-admin";
+import { listTable, updateRow, insertRow, getAllUsers } from "../lib/data-admin";
 import { PageShell, PageHeader } from "../components/ui/PagePrimitives";
 import { DataState } from "../components/ui/DataState";
 import { toast } from "sonner";
@@ -37,8 +37,8 @@ const CertificationsAdmin = () => {
       setApps(result.data.apps);
       setUsers(result.data.users);
       setDataState({ kind: "ok" });
-    } else if (result.state === "supabase-missing") {
-      setDataState({ kind: "supabase-missing" });
+    } else if (result.state === "backend-missing") {
+      setDataState({ kind: "backend-missing" });
     } else {
       toast.error("Error fetching data");
       setDataState({ kind: "error", message: result.message });

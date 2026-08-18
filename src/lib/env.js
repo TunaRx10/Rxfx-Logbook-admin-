@@ -1,21 +1,32 @@
 /**
- * Safe env var accessor.
+ * Safe env var accessor (client).
  *
- * Vite substitutes `import.meta.env.VITE_*` literals at build time, so in
- * production this just returns the baked-in value. The try/catch + optional
- * chain protect against non-Vite runtimes (SSR, Vitest, raw Node) where
- * `import.meta.env` is undefined or throws.
+ * ⚠️ SECURITY: do NOT use dynamic `import.meta.env[key]` access — Vite cannot
+ * statically analyse it and inlines the ENTIRE `import.meta.env` object,
+ * including every `VITE_*` secret, into the bundle. Only the non-secret vars
+ * whitelisted below may reach the client.
  *
  * Returns the fallback if the var is missing, an empty string, or the literal
  * "undefined" (which Vite leaves behind when the consumer references an
  * undeclared env var by mistake).
  */
-export function envVar(key, fallback = "") {
+
+// Static map: Vite substitutes these dot-notation literals at build time.
+// Anything NOT listed here is never readable from the client.
+function clientEnv() {
   try {
-    const v = import.meta.env?.[key];
-    if (v && v !== "undefined" && v !== "null") return v;
-    return fallback;
+    return {
+      VITE_GA_ID: import.meta.env.VITE_GA_ID,
+      VITE_SUPREME_ADMIN_EMAIL: import.meta.env.VITE_SUPREME_ADMIN_EMAIL,
+    };
   } catch {
-    return fallback;
+    // Non-Vite runtime (SSR / raw Node / Vitest): no client env available.
+    return {};
   }
+}
+
+export function envVar(key, fallback = "") {
+  const v = clientEnv()[key];
+  if (v && v !== "undefined" && v !== "null") return v;
+  return fallback;
 }

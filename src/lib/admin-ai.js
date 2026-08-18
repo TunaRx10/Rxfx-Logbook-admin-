@@ -9,8 +9,17 @@
  */
 
 import { useEffect, useState } from "react";
+import { getStoredSession } from "./apps-script-auth";
 
 const AI_PROXY = "/api/admin-ai";
+
+/** En-têtes communs : token de session admin en Authorization: Bearer. */
+function authHeaders(extra = {}) {
+  const session = getStoredSession();
+  const headers = { "Content-Type": "application/json", ...extra };
+  if (session?.token) headers.Authorization = `Bearer ${session.token}`;
+  return headers;
+}
 
 /**
  * Modèles disponibles — ordre de cascade : Gemini (défaut) → Mistral → OpenRouter.
@@ -88,7 +97,7 @@ async function checkStatus() {
   if (!_statusPromise) {
     _statusPromise = (async () => {
       try {
-        const res = await fetch(AI_PROXY + "/status");
+        const res = await fetch(AI_PROXY + "/status", { headers: authHeaders() });
         const data = await res.json();
         _aiStatus = Boolean(data.ready);
         _hasGemini = Boolean(data.hasGemini);
@@ -153,7 +162,7 @@ export function getAvailableModels() {
 export async function openRouterChat(messages, { signal, stream = false, model } = {}) {
   const res = await fetch(`${AI_PROXY}/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify({ messages, model: model || DEFAULT_MODEL, stream }),
     signal,
   });
@@ -173,7 +182,7 @@ export async function openRouterChat(messages, { signal, stream = false, model }
 export async function generateImage(prompt) {
   const res = await fetch(`${AI_PROXY}/image`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify({ prompt }),
   });
 
@@ -191,7 +200,7 @@ export async function generateImage(prompt) {
 export async function generateWithAI(prompt) {
   const res = await fetch(`${AI_PROXY}/generate`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify({ prompt }),
   });
 

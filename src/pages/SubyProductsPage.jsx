@@ -5,7 +5,7 @@ import {
   Save, ToggleLeft, ToggleRight, RefreshCw, Package,
   Globe, Lock, AlertCircle,
 } from "lucide-react";
-import { getAllSystemSettings, setSystemSetting } from "../lib/supabase-admin";
+import { getAllSystemSettings, setSystemSetting } from "../lib/data-admin";
 import { PageShell, PageHeader, Section } from "../components/ui/PagePrimitives";
 import { DataState } from "../components/ui/DataState";
 
@@ -53,8 +53,8 @@ const SubyProductsPage = () => {
         setPaymentMethods({ card: false, crypto: true });
       }
       setState({ kind: "ok" });
-    } else if (result.state === "supabase-missing") {
-      setState({ kind: "supabase-missing" });
+    } else if (result.state === "backend-missing") {
+      setState({ kind: "backend-missing" });
     } else {
       setState({ kind: "error", message: result.message });
     }
@@ -101,7 +101,7 @@ const SubyProductsPage = () => {
       />
 
       {/* Payment Methods Toggle — always render so the operator can still
-          see the toggle UI even when Supabase is missing. Save is gated on
+          see the toggle UI even when the backend is missing. Save is gated on
           the products state to avoid spurious error toasts. */}
       <div className="bento-card mb-10">
         <div className="flex items-center gap-2 mb-6">
@@ -126,7 +126,7 @@ const SubyProductsPage = () => {
             <button
               onClick={async () => {
                 if (state.kind !== "ok") {
-                  toast.error("Configurez Supabase d'abord pour activer la carte");
+                  toast.error("Le backend n'est pas configuré (VITE_GOOGLE_APPS_SCRIPT_URL)");
                   return;
                 }
                 const newVal = !paymentMethods.card;
@@ -158,8 +158,8 @@ const SubyProductsPage = () => {
         {state.kind === "loading" && (
           <DataState.Loading label="Chargement des produits Suby…" rows={4} />
         )}
-        {state.kind === "supabase-missing" && (
-          <DataState.SupabaseMissing onGoToSettings={() => (window.location.href = "/settings")} />
+        {state.kind === "backend-missing" && (
+          <DataState.BackendMissing onGoToSettings={() => (window.location.href = "/settings")} />
         )}
         {state.kind === "error" && (
           <DataState.Error message={state.message} onRetry={loadProducts} />

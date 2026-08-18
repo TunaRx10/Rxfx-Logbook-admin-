@@ -5,7 +5,7 @@ import {
   Calendar, Tag, Layers, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { updateUserProfile } from "../../lib/supabase-admin";
+import { updateUserProfile } from "../../lib/data-admin";
 
 const PLANS = [
   {

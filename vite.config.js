@@ -2,7 +2,6 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'node:path'
 import { devRouteWarmup } from './vite-plugins/dev-route-warmup'
-import devSupabaseDirect from './vite-plugins/dev-supabase-direct'
 import devAdminAI from './vite-plugins/dev-admin-ai'
 
 // https://vitejs.dev/config/
@@ -22,8 +21,8 @@ import devAdminAI from './vite-plugins/dev-admin-ai'
 // /settings, /suby-products a few seconds after `serverReady` so the
 // Vite dep-graph resolves per-route chunks pre-emptively. First user
 // navigation then doesn't pay the cold-compile tax.
-// Load ALL .env vars (not just VITE_*) so the dev-supabase-direct
-// plugin can read SUPABASE_SERVICE_ROLE_KEY from process.env.
+// Load ALL .env vars (not just VITE_*) so the dev-admin-ai plugin can
+// read GEMINI_API_KEY / OPENROUTER_API_KEY from process.env.
 const env = loadEnv(process.env.NODE_ENV || 'development', process.cwd(), '');
 for (const [key, value] of Object.entries(env)) {
   if (!process.env[key]) process.env[key] = value;
@@ -43,9 +42,6 @@ export default defineConfig({
     // expose /api/dev/* for the AdminDashboard degraded-mode banner.
     // Plugin internally gates on `apply: 'serve'` so it's a no-op in
     // `vite build` (production).
-    // devFirebaseEmulator(), // DÉSACTIVÉ — Firebase retiré, Supabase uniquement
-    // ⚡ DEV-ONLY: direct Supabase proxy (bypasses Firebase Functions)
-    devSupabaseDirect(),
     // 🔒 DEV-ONLY: AI proxy (OpenRouter + Gemini) — keeps API keys server-side
     devAdminAI(),
     // ⚡ DEV-ONLY: warmup critical routes after Vite is ready. No-op in
@@ -79,10 +75,7 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
     },
-    // 🔒 PROXY: Supabase direct + Admin AI — both server-side only.
-    //   dev-supabase-direct handles /api/supabase-direct
-    //   dev-admin-ai handles /api/admin-ai/*
-    //   No Firebase proxy needed — Firebase has been fully removed.
+    // 🔒 PROXY: Admin AI — server-side only (dev-admin-ai handles /api/admin-ai/*).
     proxy: {},
   },
   // 🔒 audit 2026-07-30 — framer-motion 12.x native ESM resolution broken

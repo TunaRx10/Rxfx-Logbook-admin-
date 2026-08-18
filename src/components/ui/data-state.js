@@ -8,11 +8,11 @@ export async function loadGuard(fetcher) {
   } catch (err) {
     const msg = String(err?.message ?? err);
     if (
-      msg.includes("Supabase not configured") ||
-      msg.includes("failed-precondition") ||
-      msg.toLowerCase().includes("supabase")
+      msg.includes("non configuré") ||
+      msg.includes("Apps Script") ||
+      msg.includes("failed-precondition")
     ) {
-      return { data: null, state: "supabase-missing", message: msg };
+      return { data: null, state: "backend-missing", message: msg };
     }
     return { data: null, state: "error", message: msg };
   }

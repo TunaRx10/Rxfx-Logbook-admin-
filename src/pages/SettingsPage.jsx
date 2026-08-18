@@ -9,7 +9,7 @@ import {
   ExternalLink, Wallet, Key, Copy, Lock, MessageCircle,
   User, Camera, BadgeCheck, Star
 } from "lucide-react";
-import { getAllSystemSettings, setSystemSetting, getPaymentConfig, setPaymentConfig, getDiscordInviteLink, setDiscordInviteLink } from "../lib/supabase-admin";
+import { getAllSystemSettings, setSystemSetting, getPaymentConfig, setPaymentConfig, getDiscordInviteLink, setDiscordInviteLink } from "../lib/data-admin";
 import { getSubyBalance, isSubyConfigured } from "../lib/suby-admin";
 import { PageShell, PageHeader, Section } from "../components/ui/PagePrimitives";
 
@@ -152,7 +152,7 @@ const SettingsPage = () => {
   return (
     <PageShell>
       <PageHeader
-        eyebrow="Control Plane Configuration — Supabase system_config"
+        eyebrow="Control Plane Configuration — system_config (Sheets)"
         title="System"
         highlight="Settings"
         subtitle="Global orchestration and security parameters."
@@ -514,7 +514,7 @@ const SettingsPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <SettingCard
             name="Automated Backups"
-            desc="Perform daily Supabase and Firestore snapshots."
+            desc="Perform daily Google Sheets snapshots."
             type="toggle"
             value={autoBackup}
             onChange={(v) => updateSetting("autoBackup", v, setAutoBackup)}

@@ -8,6 +8,7 @@
 // ───────────────────────────────────────────────────────────────────────
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { requireAdmin } from "../_lib/admin-auth";
 
 type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
@@ -22,7 +23,7 @@ type Body = {
 const DEFAULT_MODEL = "openrouter/free";
 
 async function callOpenRouter(body: Body) {
-  const apiKey = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY not configured");
   // Inject a systemPrompt prefix if provided
   const messages = body.systemPrompt
@@ -49,7 +50,7 @@ async function callOpenRouter(body: Body) {
 }
 
 async function callGemini(body: Body) {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
   const sys = body.systemPrompt || "";
   const contents = body.messages
@@ -81,6 +82,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  const denied = await requireAdmin(req);
+  if (denied) {
+    res.status(denied.status).json({ error: denied.message });
+    return;
+  }
+
   let body: Body;
   try {
     body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
@@ -95,7 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Cascade: try Gemini (if a model hints Gemini) else OpenRouter/OpenRouter-free
-  const hasGemini = !!(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY);
+  const hasGemini = !!(process.env.GEMINI_API_KEY);
   const modelLooksGemini =
     !!body.model && (body.model.includes("gemini") || body.model.startsWith("google/"));
 
@@ -109,9 +116,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // PATH B: OpenRouter with fallback chain.
-  const apiKey = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    res.status(503).json({ error: "OPENROUTER_API_KEY (or VITE_OPENROUTER_API_KEY) not configured" });
+    res.status(503).json({ error: "OPENROUTER_API_KEY not configured" });
     return;
   }
   const maxTokens = Math.max(body.maxTokens ?? 256, 64);

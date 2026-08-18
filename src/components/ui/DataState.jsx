@@ -11,13 +11,13 @@ import {
 /**
  * DataState — single source of truth for "no / loading / errored / OK"
  * in the admin app. Use one of the four sub-components (`DataState.Loading`,
- * `DataState.Empty`, `DataState.Error`, `DataState.SupabaseMissing`) so
+ * `DataState.Empty`, `DataState.Error`, `DataState.BackendMissing`) so
  * every page renders the same look during outages.
  *
  * Rationale: before this existed, half the pages toasted raw "Error
  * fetching applications" / "Erreur lors du chargement des produits Suby"
  * which (a) is unactionable, (b) flashes a misleading error in local
- * dev when Supabase simply isn't configured, and (c) had inconsistent
+ * dev when the backend simply isn't configured, and (c) had inconsistent
  * empty states. Now every page renders the same canonical states.
  */
 const SHELL_CLS =
@@ -58,16 +58,16 @@ const Empty = ({ icon: Icon = Inbox, title, message, action }) => (
 );
 
 /**
- * SupabaseMissing — the canonical "Supabase isn't configured yet" state.
- * Triggered when supabaseAdminProxy returns `HttpsError("failed-precondition",
- * "Supabase not configured")`. Surfaces a single CTA pointing the operator
- * to the configuration page, instead of alarming with an error toast.
+ * BackendMissing — the canonical "Apps Script isn't configured" state.
+ * Triggered when the Apps Script deployment URL is missing or responds
+ * in HTML (expired deployment). Surfaces a single CTA pointing the
+ * operator to the configuration, instead of alarming with an error toast.
  */
-const SupabaseMissing = ({ onGoToSettings }) => (
+const BackendMissing = ({ onGoToSettings }) => (
   <Empty
     icon={Plug}
-    title="Supabase not configured"
-    message="Configurez Supabase côté serveur (SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY) pour activer cette page."
+    title="Backend not configured"
+    message="Configurez VITE_GOOGLE_APPS_SCRIPT_URL (déploiement Apps Script « Anyone ») pour activer cette page."
     action={
       <button
         type="button"
@@ -82,10 +82,10 @@ const SupabaseMissing = ({ onGoToSettings }) => (
 );
 
 /**
- * Error — fallback for anything OTHER than "Supabase not configured".
- * Use sparingly. Most "errors" in dev come from missing Supabase config
- * (see SupabaseMissing) — only render this when the failure is genuinely
- * unexpected (e.g. RLS rejected a write).
+ * Error — fallback for anything OTHER than "backend not configured".
+ * Use sparingly. Most "errors" in dev come from missing Apps Script config
+ * (see BackendMissing) — only render this when the failure is genuinely
+ * unexpected (e.g. the deployment returns 401/403).
  */
 const Error = ({ title = "Something went wrong", message, onRetry }) => (
   <Empty
@@ -102,5 +102,5 @@ const Error = ({ title = "Something went wrong", message, onRetry }) => (
   />
 );
 
-export const DataState = { Loading, Empty, Error, SupabaseMissing, loadGuard };
+export const DataState = { Loading, Empty, Error, BackendMissing, loadGuard };
 export default DataState;

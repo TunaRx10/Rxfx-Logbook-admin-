@@ -11,7 +11,7 @@ import {
   Link2, Bell, MessageSquare,
 } from "lucide-react";
 import { useLang } from "../context/LangContext";
-import { getDiscordInviteLink } from "../lib/supabase-admin";
+import { getDiscordInviteLink } from "../lib/data-admin";
 
 const Sidebar = ({ onClose }) => {
   const { lang, setLang, languages, t } = useLang();

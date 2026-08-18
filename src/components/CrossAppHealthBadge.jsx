@@ -137,7 +137,7 @@ const CrossAppHealthBadge = ({
       });
     } else if (state === "error" && prev !== "error") {
       toast.error("✕ Probe cross-app en erreur", {
-        description: "Vérifie ton PIN admin et la connectivité Firebase Functions.",
+        description: "Vérifie la connectivité Vercel (fonctions api/*) et ton PIN admin.",
         duration: 6_000,
       });
     } else if (state === "ok-fast" && (prev === "unreachable" || prev === "error")) {
@@ -233,7 +233,7 @@ const CrossAppHealthBadge = ({
         <Globe size={18} className="text-white/40 shrink-0" />
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">Sonde non configurée</p>
-          <p className="text-[10px] text-white/30 mt-0.5">Aucun endpoint cross-app actif depuis la migration Supabase.</p>
+          <p className="text-[10px] text-white/30 mt-0.5">Aucun endpoint cross-app actif depuis la migration Google Sheets.</p>
         </div>
       </motion.div>
     );

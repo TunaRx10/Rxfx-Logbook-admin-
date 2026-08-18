@@ -1,15 +1,28 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { supabase } from "../lib/supabase";
-import { envVar } from "../lib/env";
-import { safeCallProxy } from "../lib/supabase-admin";
+import { safeCallProxy, updateUserProfile } from "../lib/data-admin";
+import * as appsScriptAuth from "../lib/apps-script-auth";
 
 const AuthContext = createContext();
 
-// Dev PIN fallback counter (resets on successful login)
-let verifyPinAttemptsRemaining = 5;
-
 export const useAuth = () => useContext(AuthContext);
+
+// Local-only escape hatch for installation/UI work. Vite removes this branch
+// from production builds (`import.meta.env.DEV` becomes statically `false`).
+const devAdminOverride = () =>
+  import.meta.env.DEV && localStorage.getItem("rxfx_force_admin") === "true";
+
+/**
+ * Le rôle admin se lit directement dans `profiles.role` (le profil renvoyé par
+ * `login`/`register`/`getCurrentUser` inclut déjà `role`, `status` et
+ * `subscription_tier`). On n'a donc plus besoin d'un round-trip supplémentaire.
+ */
+const userIsAdmin = (user) => {
+  if (!user) return false;
+  if (devAdminOverride()) return true;
+  if (user.status && user.status !== "active") return false;
+  return user.role === "admin";
+};
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -19,51 +32,21 @@ export const AuthProvider = ({ children }) => {
   });
   const [loading, setLoading] = useState(true);
 
-  const fetchProfileRole = useCallback(async (user) => {
-    if (!user) return false;
-    // This browser-only escape hatch is strictly local development; never
-    // let a persisted client flag grant production admin privileges.
-    if (import.meta.env.DEV && localStorage.getItem("rxfx_force_admin") === "true") return true;
-    try {
-      // Le rôle admin se lit désormais directement dans `profiles.role`
-      // (la table `admins` legacy n'existe plus dans le schéma courant).
-      // On charge aussi `status` et `subscription_tier` pour les pages qui
-      // en ont besoin sans faire un round-trip supplémentaire.
-      const { data: profileData, error: profileErr } = await supabase
-        .from('profiles')
-        .select('role, status, subscription_tier')
-        .eq('id', user.id)
-        .single();
-
-      if (profileErr) {
-        console.warn("[AuthContext] profiles fetch err:", profileErr);
-        return false;
-      }
-      if (profileData?.status && profileData.status !== 'active') return false;
-      return profileData?.role === 'admin';
-    } catch (err) {
-      console.error("AuthContext: Profile fetch error", err);
-      return false;
-    }
-  }, []);
-
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        let { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
+        const stored = appsScriptAuth.getStoredSession();
+        if (stored?.token) {
           try {
-            const { data: refreshData } = await supabase.auth.refreshSession();
-            session = refreshData.session ?? null;
-          } catch (e) {
-            console.warn("[AuthContext] Session refresh failed", e);
+            // Valide la session persistée et rafraîchit le profil (rôle/statut).
+            const user = await appsScriptAuth.getCurrentUser(stored.token);
+            appsScriptAuth.storeSession({ token: stored.token, user });
+            setCurrentUser(user);
+            setIsAdmin(userIsAdmin(user));
+          } catch (err) {
+            console.warn("[AuthContext] getCurrentUser failed:", err?.message);
+            appsScriptAuth.clearSession();
           }
-        }
-        const user = session?.user ?? null;
-        setCurrentUser(user);
-        if (user) {
-          const adminStatus = await fetchProfileRole(user);
-          setIsAdmin(adminStatus);
         }
       } catch (err) {
         console.error("AuthContext: Initialization error", err);
@@ -72,81 +55,92 @@ export const AuthProvider = ({ children }) => {
       }
     };
     initializeAuth();
+  }, []);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const user = session?.user ?? null;
-      setCurrentUser(user);
-      if (user) {
-        const adminStatus = await fetchProfileRole(user);
-        setIsAdmin(adminStatus);
-      } else {
-        setIsAdmin(false);
-        setIsPinVerified(false);
-        sessionStorage.removeItem("rxfx_admin_pin_verified");
+  const applySession = useCallback((session) => {
+    if (!session?.token || !session?.user) return null;
+    appsScriptAuth.storeSession({ token: session.token, user: session.user });
+    setCurrentUser(session.user);
+    setIsAdmin(userIsAdmin(session.user));
+    // Un nouveau login doit refranchir la grille PIN.
+    setIsPinVerified(false);
+    sessionStorage.removeItem("rxfx_admin_pin_verified");
+    return session.user;
+  }, []);
+
+  const login = useCallback(
+    async (email, password) => {
+      const session = await appsScriptAuth.login(email, password);
+      return applySession(session);
+    },
+    [applySession],
+  );
+
+  /**
+   * `register` — inscrit via l'action `register` du script puis, si demandé,
+   * tente de promouvoir le compte en `admin`. La promotion passe par
+   * `updateUserProfile` (action admin) : elle n'est possible que pour une
+   * session déjà admin. Pour le bootstrap du premier admin, définir
+   * manuellement `role=admin` dans la feuille `profiles`, puis se reconnecter.
+   */
+  const register = useCallback(
+    async (data, { promoteAdmin = false } = {}) => {
+      const session = await appsScriptAuth.register(data);
+      if (promoteAdmin && session?.user?.id) {
+        try {
+          await updateUserProfile(session.user.id, { role: "admin" });
+          session.user.role = "admin";
+        } catch (err) {
+          console.warn(
+            "[AuthContext] Promotion admin impossible (session non-admin) — définissez role=admin dans la feuille profiles, puis reconnectez-vous.",
+            err?.message,
+          );
+        }
       }
-    });
-    return () => subscription.unsubscribe();
-  }, [fetchProfileRole]);
+      return applySession(session);
+    },
+    [applySession],
+  );
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     setIsPinVerified(false);
     sessionStorage.removeItem("rxfx_admin_pin_verified");
     sessionStorage.removeItem("rxfx_admin_pin");
     setIsAdmin(false);
-    verifyPinAttemptsRemaining = 5;
-    await supabase.auth.signOut();
-  };
+    setCurrentUser(null);
+    const stored = appsScriptAuth.getStoredSession();
+    if (stored?.token) await appsScriptAuth.logout(stored.token);
+    appsScriptAuth.clearSession();
+  }, []);
 
-  /** PIN verification is a local UX gate; production access is role-gated above. */
+  /**
+   * Vérification du PIN admin — TOUJOURS côté serveur (action `verifyAdminPin`
+   * du Code.gs, avec lockout anti-bruteforce). Le PIN n'est jamais embarqué
+   * dans le bundle client.
+   */
   const verifyPin = async (pin) => {
     if (!pin || typeof pin !== "string") {
       throw new Error("PIN requis.");
     }
-
-    if (import.meta.env.PROD) {
-      const result = await safeCallProxy("verifyAdminPin", { pin });
-      if (result?.success) {
-        sessionStorage.setItem("rxfx_admin_pin_verified", "true");
-        setIsPinVerified(true);
-      }
-      return result;
-    }
-
-    const expectedPin = envVar("VITE_ADMIN_PIN", "");
-    if (!expectedPin) {
-      throw new Error("PIN admin non configuré. Définissez VITE_ADMIN_PIN pour le mode local.");
-    }
-
-    if (pin === expectedPin) {
-      verifyPinAttemptsRemaining = 5;
+    const result = await safeCallProxy("verifyAdminPin", { pin });
+    if (result?.success) {
       sessionStorage.setItem("rxfx_admin_pin_verified", "true");
       setIsPinVerified(true);
-      return { success: true, attemptsRemaining: 5, isLocked: false };
     }
-
-    const next = Math.max(0, verifyPinAttemptsRemaining - 1);
-    verifyPinAttemptsRemaining = next;
-
-    return {
-      success: false,
-      attemptsRemaining: next,
-      isLocked: next === 0,
-    };
+    return result;
   };
 
   const value = {
     currentUser,
     isAdmin,
     loading,
+    login,
+    register,
     logout,
     isPinVerified,
     verifyPin,
     emulatorStatus: { state: "ready", elapsedMs: 0 }, // toujours ready (plus de Firebase)
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

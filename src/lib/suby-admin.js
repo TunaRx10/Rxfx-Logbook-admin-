@@ -3,7 +3,7 @@
 // never be bundled in the APK/browser. Until a documented BFF URL and API
 // contract are configured, fail clearly and keep static hosted checkout links
 // available through suby-checkout-links.js.
-import { supabase } from "./supabase";
+import * as appsScriptAuth from "./apps-script-auth";
 
 function configuredBffUrl() {
   return import.meta.env.VITE_SUBY_BFF_URL || "";
@@ -28,9 +28,9 @@ async function callSubyFunction(action, payload = {}) {
 
   const url = explicitBff;
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const stored = appsScriptAuth.getStoredSession();
   const headers = { "Content-Type": "application/json" };
-  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+  if (stored?.token) headers.Authorization = `Bearer ${stored.token}`;
   const response = await fetch(url, {
     method: "POST",
     headers,
