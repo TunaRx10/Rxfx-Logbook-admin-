@@ -4,8 +4,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, MoreVertical, Ban, CheckCircle2,
   Pause, Trash2, X, Zap, Loader2,
+  ArrowUp, ArrowDown, ChevronsUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  createColumnHelper,
+  tableFeatures,
+  rowSortingFeature,
+  createSortedRowModel,
+  useTable,
+} from "@tanstack/react-table";
 import {
   getAllUsersWithSubs,
   suspendUser,
@@ -18,6 +26,9 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useLang } from "../context/LangContext";
 import { PageShell, PageHeader } from "../components/ui/PagePrimitives";
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+} from "../components/ui/table";
 import PlanEditor from "../components/ui/PlanEditor";
 
 /**
@@ -51,6 +62,32 @@ const STATUS_BADGE_CLASS = {
   pending: "badge-pending",
 };
 
+/* Stable feature set: sorting only (search + status filtering stay app-level). */
+const features = tableFeatures({
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+});
+
+const SortableHeader = ({ column, label }) => {
+  const sorted = column.getIsSorted();
+  return (
+    <button
+      type="button"
+      onClick={column.getToggleSortingHandler()}
+      className="inline-flex items-center gap-1.5 uppercase tracking-[0.25em] text-[inherit] font-[inherit] hover:text-white/70 transition-colors"
+    >
+      {label}
+      {sorted === "asc" ? (
+        <ArrowUp size={12} className="text-cyan" />
+      ) : sorted === "desc" ? (
+        <ArrowDown size={12} className="text-cyan" />
+      ) : (
+        <ChevronsUpDown size={12} className="opacity-30" />
+      )}
+    </button>
+  );
+};
+
 const UsersPage = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -82,7 +119,7 @@ const UsersPage = () => {
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
-  const handleQuickPlanChange = async (uid, newPlan) => {
+  const handleQuickPlanChange = useCallback(async (uid, newPlan) => {
     setPlanUpdating(uid);
     try {
       await updateUserProfile(uid, { plan: newPlan, status: "active" });
@@ -93,7 +130,7 @@ const UsersPage = () => {
     } finally {
       setPlanUpdating(null);
     }
-  };
+  }, [loadUsers]);
 
   // Click-outside to close the per-row action menu.
   useEffect(() => {
@@ -174,10 +211,10 @@ const UsersPage = () => {
     }
   }, [confirmAction, currentUser, reason, t, loadUsers]);
 
-  const startAction = (user, type) => {
+  const startAction = useCallback((user, type) => {
     setConfirmAction({ user, type });
     setReason("");
-  };
+  }, []);
 
   // Auto-fire non-destructive actions (reactivate / unban are reversible).
   useEffect(() => {
@@ -194,6 +231,167 @@ const UsersPage = () => {
     suspended: users.filter((u) => statusToKey(u) === "suspended").length,
     banned: users.filter((u) => statusToKey(u) === "banned").length,
   }), [users]);
+
+  const columns = useMemo(() => {
+    const helper = createColumnHelper();
+    return helper.columns([
+      helper.accessor(
+        (u) => u.display_name || `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || u.email || "—",
+        {
+          id: "name",
+          header: ({ column }) => <SortableHeader column={column} label={t("users_col_user")} />,
+          cell: ({ row, getValue }) => {
+            const user = row.original;
+            return (
+              <div
+                className="cursor-pointer"
+                onClick={() => navigate(`/users/${user.id}`)}
+              >
+                <p className="text-white text-sm font-bold">{getValue()}</p>
+                <p className="text-[10px] text-white/15 font-mono uppercase">{user.id?.slice(0, 12)}…</p>
+              </div>
+            );
+          },
+        },
+      ),
+      helper.accessor("email", {
+        id: "email",
+        header: ({ column }) => <SortableHeader column={column} label={t("users_col_email")} />,
+        cell: ({ getValue }) => <span className="text-white/50 text-xs">{getValue()}</span>,
+      }),
+      helper.accessor("plan", {
+        id: "plan",
+        header: ({ column }) => <SortableHeader column={column} label={t("users_col_plan")} />,
+        cell: ({ row }) => {
+          const user = row.original;
+          return (
+            <div className="flex items-center gap-1">
+              {planUpdating === user.id ? (
+                <div className="px-6 py-1">
+                  <Loader2 size={12} className="text-cyan animate-spin mx-auto" />
+                </div>
+              ) : (
+                <>
+                  <PlanBadge
+                    active={(user.plan || "free") === "free"}
+                    label="Free"
+                    onClick={() => handleQuickPlanChange(user.id, "free")}
+                  />
+                  <PlanBadge
+                    active={user.plan === "pro"}
+                    label="Pro"
+                    color="text-cyan border-cyan/30 bg-cyan/10"
+                    onClick={() => handleQuickPlanChange(user.id, "pro")}
+                  />
+                  <PlanBadge
+                    active={user.plan === "elite"}
+                    label="Elite"
+                    color="text-amber-400 border-amber-400/30 bg-amber-400/10"
+                    onClick={() => handleQuickPlanChange(user.id, "elite")}
+                  />
+                </>
+              )}
+            </div>
+          );
+        },
+      }),
+      helper.accessor((u) => statusToKey(u), {
+        id: "status",
+        header: ({ column }) => <SortableHeader column={column} label={t("users_col_status")} />,
+        cell: ({ getValue }) => (
+          <span className={`badge-status ${STATUS_BADGE_CLASS[getValue()]}`}>
+            {t(`users_status_${getValue()}`)}
+          </span>
+        ),
+      }),
+      helper.display({
+        id: "actions",
+        header: () => <span className="block text-right pr-6">{t("users_col_actions")}</span>,
+        cell: ({ row }) => {
+          const user = row.original;
+          const statusKey = statusToKey(user);
+          return (
+            <div className="relative inline-block" ref={openMenuFor === user.id ? menuRef : null}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenuFor(openMenuFor === user.id ? null : user.id);
+                }}
+                className="p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition"
+                aria-label={t("users_action_more")}
+              >
+                <MoreVertical size={16} />
+              </button>
+              <AnimatePresence>
+                {openMenuFor === user.id && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.12 }}
+                    className="absolute right-0 top-full mt-1 w-44 bg-black border border-white/10 rounded-xl shadow-2xl z-10 overflow-hidden"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {statusKey === "suspended" ? (
+                      <ActionItem
+                        icon={<CheckCircle2 size={14} className="text-emerald" />}
+                        label={t("users_action_reactivate")}
+                        onClick={() => startAction(user, "reactivate")}
+                      />
+                    ) : statusKey !== "banned" ? (
+                      <ActionItem
+                        icon={<Pause size={14} className="text-amber" />}
+                        label={t("users_action_suspend")}
+                        onClick={() => startAction(user, "suspend")}
+                      />
+                    ) : null}
+
+                    <ActionItem
+                      icon={<Zap size={14} className="text-cyan" />}
+                      label={t("users_action_edit_plan")}
+                      onClick={() => {
+                        setEditPlanFor(user);
+                        setOpenMenuFor(null);
+                      }}
+                    />
+
+                    {statusKey === "banned" ? (
+                      <ActionItem
+                        icon={<CheckCircle2 size={14} className="text-emerald" />}
+                        label={t("users_action_unban")}
+                        onClick={() => startAction(user, "unban")}
+                      />
+                    ) : (
+                      <ActionItem
+                        icon={<Ban size={14} className="text-red-500" />}
+                        label={t("users_action_ban")}
+                        danger
+                        onClick={() => startAction(user, "ban")}
+                      />
+                    )}
+
+                    <ActionItem
+                      icon={<Trash2 size={14} className="text-red-500" />}
+                      label={t("users_action_delete")}
+                      danger
+                      onClick={() => startAction(user, "delete")}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        },
+      }),
+    ]);
+  }, [t, navigate, planUpdating, handleQuickPlanChange, openMenuFor, startAction]);
+
+  const table = useTable({
+    features,
+    columns,
+    data: filteredUsers,
+  });
 
   return (
     <PageShell>
@@ -240,156 +438,48 @@ const UsersPage = () => {
       </div>
 
       <div className="bento-card" style={{ padding: 0 }}>
-        <div className="table-wrap">
-          <table className="table-tech">
-            <thead>
-              <tr>
-                <th>{t("users_col_user")}</th>
-                <th>{t("users_col_email")}</th>
-                <th>{t("users_col_plan")}</th>
-                <th>{t("users_col_status")}</th>
-                <th className="text-right pr-6">{t("users_col_actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center text-white/15 text-[10px] uppercase">
-                    Loading…
-                  </td>
-                </tr>
-              ) : filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center text-white/15 text-[10px] uppercase">
-                    No users match
-                  </td>
-                </tr>
-              ) : filteredUsers.map((user) => {
-                const statusKey = statusToKey(user);
-                return (
-                  <tr key={user.id} className="group">
-                    <td
-                      className="cursor-pointer"
-                      onClick={() => navigate(`/users/${user.id}`)}
-                    >
-                      <p className="text-white text-sm font-bold">
-                        {user.display_name || `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || "—"}
-                      </p>
-                      <p className="text-[10px] text-white/15 font-mono uppercase">{user.id?.slice(0, 12)}…</p>
-                    </td>
-                    <td className="text-white/50 text-xs">{user.email}</td>
-                    <td>
-                      <div className="flex items-center gap-1">
-                        {planUpdating === user.id ? (
-                          <div className="px-6 py-1">
-                            <Loader2 size={12} className="text-cyan animate-spin mx-auto" />
-                          </div>
-                        ) : (
-                          <>
-                            <PlanBadge
-                              active={(user.plan || "free") === "free"}
-                              label="Free"
-                              onClick={() => handleQuickPlanChange(user.id, "free")}
-                            />
-                            <PlanBadge
-                              active={user.plan === "pro"}
-                              label="Pro"
-                              color="text-cyan border-cyan/30 bg-cyan/10"
-                              onClick={() => handleQuickPlanChange(user.id, "pro")}
-                            />
-                            <PlanBadge
-                              active={user.plan === "elite"}
-                              label="Elite"
-                              color="text-amber-400 border-amber-400/30 bg-amber-400/10"
-                              onClick={() => handleQuickPlanChange(user.id, "elite")}
-                            />
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`badge-status ${STATUS_BADGE_CLASS[statusKey]}`}>
-                        {t(`users_status_${statusKey}`)}
-                      </span>
-                    </td>
-                    <td className="text-right pr-6">
-                      <div className="relative inline-block" ref={openMenuFor === user.id ? menuRef : null}>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuFor(openMenuFor === user.id ? null : user.id);
-                          }}
-                          className="p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition"
-                          aria-label={t("users_action_more")}
-                        >
-                          <MoreVertical size={16} />
-                        </button>
-                        <AnimatePresence>
-                          {openMenuFor === user.id && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -4 }}
-                              transition={{ duration: 0.12 }}
-                              className="absolute right-0 top-full mt-1 w-44 bg-black border border-white/10 rounded-xl shadow-2xl z-10 overflow-hidden"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {statusKey === "suspended" ? (
-                                <ActionItem
-                                  icon={<CheckCircle2 size={14} className="text-emerald" />}
-                                  label={t("users_action_reactivate")}
-                                  onClick={() => startAction(user, "reactivate")}
-                                />
-                              ) : statusKey !== "banned" ? (
-                                <ActionItem
-                                  icon={<Pause size={14} className="text-amber" />}
-                                  label={t("users_action_suspend")}
-                                  onClick={() => startAction(user, "suspend")}
-                                />
-                              ) : null}
-
-                              <ActionItem
-                                icon={<Zap size={14} className="text-cyan" />}
-                                label={t("users_action_edit_plan")}
-                                onClick={() => {
-                                  setEditPlanFor(user);
-                                  setOpenMenuFor(null);
-                                }}
-                              />
-
-                              {statusKey === "banned" ? (
-                                <ActionItem
-                                  icon={<CheckCircle2 size={14} className="text-emerald" />}
-                                  label={t("users_action_unban")}
-                                  onClick={() => startAction(user, "unban")}
-                                />
-                              ) : (
-                                <ActionItem
-                                  icon={<Ban size={14} className="text-red-500" />}
-                                  label={t("users_action_ban")}
-                                  danger
-                                  onClick={() => startAction(user, "ban")}
-                                />
-                              )}
-
-                              <ActionItem
-                                icon={<Trash2 size={14} className="text-red-500" />}
-                                label={t("users_action_delete")}
-                                danger
-                                onClick={() => startAction(user, "delete")}
-                              />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((group) => (
+              <TableRow key={group.id}>
+                {group.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    className={header.column.id === "actions" ? "text-right pr-6" : ""}
+                  >
+                    {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="px-6 py-20 text-center text-white/15 text-[10px] uppercase">
+                  Loading…
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="px-6 py-20 text-center text-white/15 text-[10px] uppercase">
+                  No users match
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id} className="group">
+                {row.getAllCells().map((cell) => (
+                  <TableCell
+                    key={cell.id}
+                    className={cell.column.id === "actions" ? "text-right pr-6" : ""}
+                  >
+                    <table.FlexRender cell={cell} />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
       <AnimatePresence>
