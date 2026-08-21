@@ -349,21 +349,29 @@ const AIChatPanel = ({ isOpen, onClose }) => {
 
   return (
     <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
-          />
-
-          <motion.div
-            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 z-[80] w-full max-w-lg flex flex-col shadow-2xl"
-            style={{ background: "oklch(0.1 0.01 255 / 0.98)", borderLeft: "1px solid oklch(1 0 0 / 8%)" }}
-          >
-            {/* ── Header ── */}
+      {isOpen && [
+        // Chaque motion.div a une `key` stable pour que AnimatePresence
+        // puisse tracker individuellement chaque enfant pendant l'exit
+        // animation. Sans clé, framer-motion perd la trace et React lève
+        // « NotFoundError: removeChild » quand l'animation d'exit race avec
+        // un re-render parent.
+        <motion.div
+          key="ai-chat-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm"
+          onClick={onClose}
+        />,
+        <motion.div
+          key="ai-chat-panel"
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          className="fixed right-0 top-0 bottom-0 z-[80] w-full max-w-lg flex flex-col shadow-2xl"
+          style={{ background: "oklch(0.1 0.01 255 / 0.98)", borderLeft: "1px solid oklch(1 0 0 / 8%)" }}
+        >
             <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: "1px solid oklch(1 0 0 / 7%)" }}>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center border border-cyan/30"
@@ -640,9 +648,8 @@ const AIChatPanel = ({ isOpen, onClose }) => {
                 {currentModel.icon} {currentModel.name} · Streaming
               </p>
             </div>
-          </motion.div>
-        </>
-      )}
+        </motion.div>,
+      ]}
     </AnimatePresence>
   );
 };

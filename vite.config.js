@@ -38,10 +38,6 @@ export default defineConfig({
   //   harmless for belt-and-braces coverage.
   plugins: [
     react(),
-    // 🔧 DEV-ONLY: auto-spawn Firebase Functions emulator on Vite boot +
-    // expose /api/dev/* for the AdminDashboard degraded-mode banner.
-    // Plugin internally gates on `apply: 'serve'` so it's a no-op in
-    // `vite build` (production).
     // 🔒 DEV-ONLY: AI proxy (OpenRouter + Gemini) — keeps API keys server-side
     devAdminAI(),
     // ⚡ DEV-ONLY: warmup critical routes after Vite is ready. No-op in
@@ -76,7 +72,18 @@ export default defineConfig({
       'Cross-Origin-Resource-Policy': 'same-origin',
     },
     // 🔒 PROXY: Admin AI — server-side only (dev-admin-ai handles /api/admin-ai/*).
-    proxy: {},
+    proxy: {
+      // Reverse-proxy Apps Script à travers le dev server pour contourner
+      // CORS / COEP / CORP. Le navigateur voit une requête same-origin
+      // (`/__proxy_apps_script/...`) et Vite la transfère vers
+      // script.google.com. Mêmes conditions que l'app user.
+      '^/__proxy_apps_script/': {
+        target: 'https://script.google.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/__proxy_apps_script/, '/macros'),
+      },
+    },
   },
   // 🔒 audit 2026-07-30 — framer-motion 12.x native ESM resolution broken
   //   under vite@5 + Rollup stable: framer-motion's dist/es/index.mjs

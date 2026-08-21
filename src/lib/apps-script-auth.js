@@ -13,26 +13,44 @@
  * (`PUBLIC_ACTIONS`) : aucune clé n'est requise.
  */
 
-const APPS_SCRIPT_URL = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL || "";
+const APPS_SCRIPT_URL_RAW = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL || "";
+
+// En dev (localhost) : reverse-proxy via Vite pour contourner CORS /
+// COEP / CORP. En prod : appel direct.
+function proxiedAppsScriptUrl() {
+  if (typeof window === "undefined") return APPS_SCRIPT_URL_RAW;
+  const { hostname, origin } = window.location;
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return APPS_SCRIPT_URL_RAW.replace(
+      /^https:\/\/script\.google\.com/,
+      `${origin}/__proxy_apps_script`,
+    );
+  }
+  return APPS_SCRIPT_URL_RAW;
+}
+
+const APPS_SCRIPT_URL = proxiedAppsScriptUrl();
 
 const TOKEN_KEY = "rxfx_admin_token";
 const USER_KEY = "rxfx_admin_user";
 
 /** True quand l'URL Apps Script est configurée (backend d'auth disponible). */
 export function isAuthConfigured() {
-  return !!APPS_SCRIPT_URL;
+  return !!APPS_SCRIPT_URL_RAW;
 }
 
 async function post(action, payload = {}) {
-  if (!APPS_SCRIPT_URL) {
+  if (!APPS_SCRIPT_URL_RAW) {
     throw new Error(
       "Apps Script non configuré. Définissez VITE_GOOGLE_APPS_SCRIPT_URL dans .env.local.",
     );
   }
 
+  // text/plain → pas de preflight CORS, Apps Script parse quand même via
+  // JSON.parse(e.postData.contents).
   const res = await fetch(APPS_SCRIPT_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({ action, payload }),
   });
 

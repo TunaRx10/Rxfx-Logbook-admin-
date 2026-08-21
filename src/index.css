@@ -387,10 +387,29 @@
   }
 }
 
-/* Desktop / wide : 70%. */
+/* Desktop / wide : 70% sur <body> (PAS <html>).
+   Zoomer <html> recalcule le layout viewport à 70% et laisse un bande
+   morte de 30vh en bas. Zoomer <body> garde le bloc conteneur initial
+   à 100% (donc 100vh = vraie hauteur), puis on SURSIZE le body à
+   1/zoom pour que la peinture couvre tout : 142.857vh × 0.7 = 100vh.
+   Les conteneurs `min-h-screen` / `h-screen` (100vh) sont sursizés
+   pareil, sinon ils peindraient à 70vh et exposeraient le fond noir.
+*/
 @media (min-width: 768px) {
   @supports (zoom: 0.7) {
-    html { zoom: 0.7; }
+    html { background: #000000; }
+    body {
+      zoom: 0.7;
+      width: 100%;
+      min-height: calc(100vh / 0.7);
+      margin: 0;
+    }
+    .min-h-screen {
+      min-height: calc(100vh / 0.7);
+    }
+    .h-screen {
+      height: calc(100vh / 0.7);
+    }
   }
   @supports not (zoom: 0.7) {
     html { font-size: 70%; }

@@ -18,25 +18,54 @@
 
 import { getStoredSession } from "./apps-script-auth";
 
-const APPS_SCRIPT_URL = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL || "";
+const APPS_SCRIPT_URL_RAW = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL || "";
+
+// En dev (localhost) : reverse-proxy via Vite pour contourner CORS /
+// COEP / CORP. En prod : appel direct.
+function proxiedAppsScriptUrl() {
+  if (typeof window === "undefined") return APPS_SCRIPT_URL_RAW;
+  const { hostname, origin } = window.location;
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return APPS_SCRIPT_URL_RAW.replace(
+      /^https:\/\/script\.google\.com/,
+      `${origin}/__proxy_apps_script`,
+    );
+  }
+  return APPS_SCRIPT_URL_RAW;
+}
+
+const APPS_SCRIPT_URL = proxiedAppsScriptUrl();
 
 /** True quand Google Sheets (Apps Script) est le backend de données. */
 export function isSheetsBackend() {
-  return !!APPS_SCRIPT_URL;
+  return !!APPS_SCRIPT_URL_RAW;
 }
 
 async function callBackend(action, payload = {}) {
-  if (!APPS_SCRIPT_URL) {
+  if (!APPS_SCRIPT_URL_RAW) {
     throw new Error(
       "VITE_GOOGLE_APPS_SCRIPT_URL non configuré — l'app admin fonctionne uniquement avec Google Sheets (Apps Script)."
     );
   }
   // Authentification par token de session admin (jamais par ?key= côté client).
   const session = getStoredSession();
-  if (session?.token) payload._token = session.token;
+  if (import.meta.env.DEV) {
+    // 🔒 DEV-ONLY : en local, on utilise TOUJOURS la clé API admin (même si
+    // une vieille session traîne dans localStorage). Une session périmée
+    // enverrait un `_token` invalide → 401 ; la clé API fait passer
+    // `isAdmin_` directement. Vite inline la clé uniquement en dev via
+    // .env.local ; en build prod cette branche est éliminée
+    // (import.meta.env.DEV === false).
+    const key = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_KEY || "";
+    if (key) payload._key = key;
+  } else if (session?.token) {
+    payload._token = session.token;
+  }
+  // text/plain → pas de preflight CORS, Apps Script parse quand même via
+  // JSON.parse(e.postData.contents).
   const res = await fetch(APPS_SCRIPT_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({ action, payload }),
   });
   if (!res.ok) {
