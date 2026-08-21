@@ -8,7 +8,7 @@
 // ───────────────────────────────────────────────────────────────────────
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { requireAdmin } from "../_lib/admin-auth";
+import { requireAdmin } from "../_lib/admin-auth.js";
 
 let _cache: { value: { ready: boolean; hasGemini: boolean }; ts: number } | null = null;
 const TTL_MS = 60 * 1000;

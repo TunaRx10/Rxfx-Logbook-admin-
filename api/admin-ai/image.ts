@@ -6,7 +6,7 @@
 // ───────────────────────────────────────────────────────────────────────
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { requireAdmin } from "../_lib/admin-auth";
+import { requireAdmin } from "../_lib/admin-auth.js";
 
 type Body = { prompt: string };
 
