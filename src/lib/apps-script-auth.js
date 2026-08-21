@@ -26,7 +26,8 @@ function proxiedAppsScriptUrl() {
       `${origin}/__proxy_apps_script`,
     );
   }
-  return APPS_SCRIPT_URL_RAW;
+  // prod : relais same-origin via la fonction serverless Vercel (évite CORS).
+  return `${origin}/api/proxy-apps-script`;
 }
 
 const APPS_SCRIPT_URL = proxiedAppsScriptUrl();
